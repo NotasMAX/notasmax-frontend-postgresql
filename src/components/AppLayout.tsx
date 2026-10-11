@@ -1,29 +1,93 @@
-import { NavLink, Outlet } from 'react-router';
-
-const linkClass = ({ isActive }: { isActive: boolean }) =>
-  isActive
-    ? 'rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white'
-    : 'rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200';
+import { useState } from 'react';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router';
+import { useAuth } from '../auth/AuthContext';
 
 export function AppLayout() {
+  const auth = useAuth();
+  const navigate = useNavigate();
+  const [pending, setPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  if (auth.state.status !== 'authenticated') {
+    return null;
+  }
+
+  async function signOut() {
+    setPending(true);
+    setErrorMessage(null);
+    try {
+      const result = await auth.logout();
+      if (result === 'ended') {
+        navigate('/', { replace: true });
+      }
+    } catch {
+      setErrorMessage('Não foi possível encerrar a sessão agora. Tente novamente.');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const linkClass = ({ isActive }: { isActive: boolean }) =>
+    isActive
+      ? 'rounded-lg bg-primary px-3 py-2 text-label-large font-medium text-on-primary'
+      : 'rounded-lg px-3 py-2 text-label-large font-medium text-on-surface hover:bg-surface-container';
+  const firstName = auth.state.user.displayName.trim().split(/\s+/)[0];
+
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4">
-          <span className="text-lg font-semibold tracking-tight text-slate-950">NotasMAX</span>
-          <nav aria-label="Navegação principal" className="flex items-center gap-2">
-            <NavLink end to="/" className={linkClass}>
-              Início
-            </NavLink>
-            <NavLink to="/exemplo" className={linkClass}>
-              Rota de exemplo
-            </NavLink>
-          </nav>
+    <div className="min-h-screen bg-surface-container">
+      <header className="border-b border-outline bg-surface">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-6">
+          <Link
+            aria-label="NotasMAX, início da área administrativa"
+            className="flex items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            to="/admin"
+          >
+            <img
+              alt=""
+              className="h-11 w-11 rounded-lg object-contain"
+              height="44"
+              src="/notasmax-logo.png"
+              width="44"
+            />
+            <span className="text-title-medium font-semibold text-on-surface">NotasMAX</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <p className="max-w-48 truncate text-body-medium text-on-surface sm:max-w-none">
+              {firstName ? `Bem-vindo(a), ${firstName}!` : 'Bem-vindo(a)!'}
+            </p>
+            <button
+              className="min-h-11 rounded-lg border border-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
+              disabled={pending}
+              onClick={signOut}
+              type="button"
+            >
+              {pending ? 'Saindo…' : 'Sair'}
+            </button>
+          </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-6 py-12">
-        <Outlet />
-      </main>
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:px-6 lg:py-8">
+        <nav
+          aria-label="Navegação administrativa"
+          className="flex gap-2 rounded-2xl border border-outline bg-surface p-3 lg:flex-col"
+        >
+          <NavLink end to="/admin" className={linkClass}>
+            Início
+          </NavLink>
+        </nav>
+        <main className="min-w-0">
+          {errorMessage && (
+            <p
+              aria-live="assertive"
+              className="mb-6 rounded-lg border border-danger bg-error-surface px-4 py-3 text-body-medium text-danger"
+              role="alert"
+            >
+              {errorMessage}
+            </p>
+          )}
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

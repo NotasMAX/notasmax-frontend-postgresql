@@ -1,16 +1,93 @@
 @import 'tailwindcss';
 
+@font-face {
+  font-family: 'Roboto';
+  src: url('/Roboto.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: 'Roboto', Arial, sans-serif;
+  --color-primary: #15538e;
+  --color-primary-hover: #104575;
+  --color-on-primary: #ffffff;
+  --color-highlight: #fac239;
+  --color-surface: #ffffff;
+  --color-surface-container: #f4f7fa;
+  --color-on-surface: #043666;
+  --color-muted: #404040;
+  --color-outline: #687782;
+  --color-danger: #b50909;
+  --color-error-surface: #fff2f1;
+  --text-display-large: 3.5625rem;
+  --text-display-large--line-height: 4rem;
+  --text-display-large--font-weight: 400;
+  --text-display-large--letter-spacing: -0.015625rem;
+  --text-display-medium: 2.8125rem;
+  --text-display-medium--line-height: 3.25rem;
+  --text-display-medium--font-weight: 400;
+  --text-display-medium--letter-spacing: 0;
+  --text-display-small: 2.25rem;
+  --text-display-small--line-height: 2.75rem;
+  --text-display-small--font-weight: 400;
+  --text-display-small--letter-spacing: 0;
+  --text-headline-large: 2rem;
+  --text-headline-large--line-height: 2.5rem;
+  --text-headline-large--font-weight: 400;
+  --text-headline-large--letter-spacing: 0;
+  --text-headline-medium: 1.75rem;
+  --text-headline-medium--line-height: 2.25rem;
+  --text-headline-medium--font-weight: 400;
+  --text-headline-medium--letter-spacing: 0;
+  --text-title-large: 1.375rem;
+  --text-title-large--line-height: 1.75rem;
+  --text-title-large--font-weight: 400;
+  --text-title-large--letter-spacing: 0;
+  --text-title-medium: 1rem;
+  --text-title-medium--line-height: 1.5rem;
+  --text-title-medium--font-weight: 500;
+  --text-title-medium--letter-spacing: 0.009375rem;
+  --text-title-small: 0.875rem;
+  --text-title-small--line-height: 1.25rem;
+  --text-title-small--font-weight: 500;
+  --text-title-small--letter-spacing: 0.00625rem;
+  --text-headline-small: 1.5rem;
+  --text-headline-small--line-height: 2rem;
+  --text-headline-small--font-weight: 400;
+  --text-headline-small--letter-spacing: 0;
+  --text-body-large: 1rem;
+  --text-body-large--line-height: 1.5rem;
+  --text-body-large--font-weight: 400;
+  --text-body-large--letter-spacing: 0.03125rem;
+  --text-body-medium: 0.875rem;
+  --text-body-medium--line-height: 1.25rem;
+  --text-body-medium--font-weight: 400;
+  --text-body-medium--letter-spacing: 0.015625rem;
+  --text-body-small: 0.75rem;
+  --text-body-small--line-height: 1rem;
+  --text-body-small--font-weight: 400;
+  --text-body-small--letter-spacing: 0.025rem;
+  --text-label-large: 0.875rem;
+  --text-label-large--line-height: 1.25rem;
+  --text-label-large--font-weight: 500;
+  --text-label-large--letter-spacing: 0.00625rem;
+  --text-label-medium: 0.75rem;
+  --text-label-medium--line-height: 1rem;
+  --text-label-medium--font-weight: 500;
+  --text-label-medium--letter-spacing: 0.03125rem;
+  --text-label-small: 0.6875rem;
+  --text-label-small--line-height: 1rem;
+  --text-label-small--font-weight: 500;
+  --text-label-small--letter-spacing: 0.03125rem;
+}
+
 :root {
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-  color: #172033;
-  background: #f8fafc;
+  color-scheme: light;
+  font-family: 'Roboto', Arial, sans-serif;
+  color: #043666;
+  background: #f4f7fa;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -18,11 +95,37 @@
 }
 
 body {
-  min-width: 320px;
   min-height: 100vh;
   margin: 0;
 }
 
-a {
-  color: inherit;
+.auth-page {
+  --auth-background-start: #91c4ed;
+  --auth-background-middle: #58a0e1;
+  --auth-background-end: #1c86eb;
+  --auth-panel-alpha: 0.44;
+  background: linear-gradient(
+    135deg,
+    var(--auth-background-start) 0%,
+    var(--auth-background-middle) 54%,
+    var(--auth-background-end) 100%
+  );
+}
+
+.auth-panel {
+  background-color: rgb(255 255 255 / var(--auth-panel-alpha));
+}
+
+.auth-panel a {
+  color: var(--color-primary-hover);
+}
+
+.auth-logo {
+  box-shadow: 0 4px 12px rgb(4 54 102 / 16%);
+}
+
+@layer base {
+  a {
+    color: inherit;
+  }
 }
