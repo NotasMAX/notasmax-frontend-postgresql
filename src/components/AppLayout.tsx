@@ -35,7 +35,7 @@ export function AppLayout() {
   const firstName = auth.state.user.displayName.trim().split(/\s+/)[0];
 
   return (
-    <div className="min-h-screen bg-surface-container">
+    <div className="app-platform min-h-screen bg-surface-container">
       <header className="border-b border-panel-outline bg-surface shadow-panel">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-6">
           <Link

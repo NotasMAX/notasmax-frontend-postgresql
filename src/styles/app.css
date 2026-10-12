@@ -106,6 +106,10 @@ body {
   margin: 0;
 }
 
+html:has(.app-platform) {
+  overflow-y: scroll;
+}
+
 .auth-page {
   --auth-background-start: #91c4ed;
   --auth-background-middle: #58a0e1;
