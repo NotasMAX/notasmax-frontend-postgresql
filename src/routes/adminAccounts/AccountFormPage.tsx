@@ -4,6 +4,7 @@ import type { AccountProfile, StudentAccountDetail } from '../../api/adminAccoun
 import {
   accountIdentifier,
   createAccount,
+  findAccountIdentifierByEmail,
   loadAccountDetail,
   updateAccount,
   type AccountCreateInput,
@@ -16,6 +17,7 @@ import {
   type AccountFormErrors,
   type AccountFormField,
   accountCollectionPath,
+  accountCreatedFeedback,
   accountErrorMessage,
   getAccountFormErrors,
 } from './accountUi';
@@ -207,10 +209,27 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
                 ...(values.contactPhone.trim() ? { contactPhone: values.contactPhone.trim() } : {}),
               };
         const activationEmailStatus = await createAccount(profile, input);
-        navigate(accountCollectionPath(profile), {
-          replace: true,
-          state: { search: nextEmail, activationEmailStatus },
-        });
+        let createdAccountId: string | null = null;
+        try {
+          createdAccountId = await findAccountIdentifierByEmail(profile, nextEmail);
+        } catch {
+          // The account was created successfully; list fallback below preserves access to it.
+        }
+
+        if (createdAccountId) {
+          navigate(accountCollectionPath(profile) + '/' + encodeURIComponent(createdAccountId), {
+            replace: true,
+            state: {
+              message: accountCreatedFeedback(activationEmailStatus),
+              messageTone: activationEmailStatus === 'sent' ? 'success' : 'warning',
+            },
+          });
+        } else {
+          navigate(accountCollectionPath(profile), {
+            replace: true,
+            state: { search: nextEmail, activationEmailStatus },
+          });
+        }
         return;
       }
 
@@ -243,9 +262,11 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
         accountCollectionPath(profile) + '/' + encodeURIComponent(accountIdentifier(account));
       navigate(detailPath, {
         replace: true,
-        state: emailIsChanging
-          ? { emailChangeTo: nextEmail }
-          : { message: 'Dados da conta atualizados.' },
+        state: {
+          ...(emailIsChanging ? { emailChangeTo: nextEmail } : {}),
+          message: 'Dados da conta atualizados.',
+          messageTone: 'success',
+        },
       });
     } catch (error) {
       const parsed = getAccountFormErrors(error, visibleFields(profile), sensitiveValues);
@@ -437,7 +458,7 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
           )}
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
-            className="account-button-primary min-h-12 rounded-lg bg-primary px-6 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
+              className="account-button-primary min-h-12 rounded-lg bg-primary px-6 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
               disabled={saving}
               type="submit"
             >

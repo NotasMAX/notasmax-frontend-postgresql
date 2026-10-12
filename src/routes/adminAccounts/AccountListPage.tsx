@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import type {
   AccountActivationStatus,
@@ -19,11 +19,14 @@ import {
 } from '../../accounts/accountService';
 import { AccountPageShell } from './AccountPageShell';
 import { Badge } from '../../components/Badge';
+import { SelectField } from '../../components/SelectField';
+import { Toast } from '../../components/Toast';
 import {
+  accountCreatedFeedback,
   accountCollectionPath,
   accountErrorMessage,
-  activationFeedback,
   activationStatusLabel,
+  activationStatusTone,
   buildAccountFilters,
   classLabel,
   enrollmentStatusLabel,
@@ -86,8 +89,9 @@ function AcademicClassFilters({
   onSchoolYearChange,
   onSeriesChange,
 }: AcademicClassFiltersProps) {
-  const availableSchoolYears = [...new Set(classes.map((item) => item.schoolYear))]
-    .sort((left, right) => right - left);
+  const availableSchoolYears = [...new Set(classes.map((item) => item.schoolYear))].sort(
+    (left, right) => right - left,
+  );
   const classesForSelectedYear = classes
     .filter((item) => String(item.schoolYear) === draft.schoolYear)
     .sort((left, right) => left.series - right.series);
@@ -102,8 +106,7 @@ function AcademicClassFilters({
         >
           Ano letivo
         </label>
-        <select
-          className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        <SelectField
           id="account-school-year-filter"
           disabled={disabled}
           onChange={(event) => onSchoolYearChange(event.currentTarget.value)}
@@ -111,9 +114,11 @@ function AcademicClassFilters({
         >
           <option value="">Todos os anos</option>
           {availableSchoolYears.map((schoolYear) => (
-            <option key={schoolYear} value={schoolYear}>{schoolYear}</option>
+            <option key={schoolYear} value={schoolYear}>
+              {schoolYear}
+            </option>
           ))}
-        </select>
+        </SelectField>
       </div>
       <div className="space-y-2">
         <label
@@ -122,8 +127,7 @@ function AcademicClassFilters({
         >
           Série
         </label>
-        <select
-          className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        <SelectField
           id="account-series-filter"
           disabled={!draft.schoolYear || disabled}
           onChange={(event) => onSeriesChange(event.currentTarget.value)}
@@ -131,9 +135,11 @@ function AcademicClassFilters({
         >
           <option value="">{draft.schoolYear ? 'Selecione uma série' : 'Todas as séries'}</option>
           {availableSeries.map((series) => (
-            <option key={series} value={series}>{series}ª série</option>
+            <option key={series} value={series}>
+              {series}ª série
+            </option>
           ))}
-        </select>
+        </SelectField>
       </div>
     </>
   );
@@ -158,6 +164,10 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
   const [filterOptionsError, setFilterOptionsError] = useState<string | null>(null);
   const [filterValidationError, setFilterValidationError] = useState<string | null>(null);
   const [filterOptionsRetry, setFilterOptionsRetry] = useState(0);
+  const [showCreatedToast, setShowCreatedToast] = useState(
+    initialState.activationEmailStatus !== undefined,
+  );
+  const dismissCreatedToast = useCallback(() => setShowCreatedToast(false), []);
 
   useEffect(() => {
     if (profile === 'administrator') return;
@@ -204,16 +214,22 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
 
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if ((profile === 'student' || profile === 'teacher')
-      && Boolean(draft.schoolYear) !== Boolean(draft.series)) {
+    if (
+      (profile === 'student' || profile === 'teacher') &&
+      Boolean(draft.schoolYear) !== Boolean(draft.series)
+    ) {
       setFilterValidationError('Para filtrar por turma, selecione o ano letivo e a série.');
       return;
     }
     if ((profile === 'student' || profile === 'teacher') && draft.schoolYear && draft.series) {
-      const matchingClass = filterOptions.classes.some((item) =>
-        item.schoolYear === Number(draft.schoolYear) && item.series === Number(draft.series));
+      const matchingClass = filterOptions.classes.some(
+        (item) =>
+          item.schoolYear === Number(draft.schoolYear) && item.series === Number(draft.series),
+      );
       if (!matchingClass) {
-        setFilterValidationError('Não há turma disponível para o ano letivo e a série selecionados.');
+        setFilterValidationError(
+          'Não há turma disponível para o ano letivo e a série selecionados.',
+        );
         return;
       }
     }
@@ -253,25 +269,18 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
     setFilters(buildAccountFilters(profile, next, 1, filterOptions.classes));
   }
 
-  const createdNotice =
-    initialState.activationEmailStatus === undefined
-      ? null
-      : 'Cadastro concluído. ' + activationFeedback(initialState.activationEmailStatus);
-
   return (
     <AccountPageShell
       profile={profile}
-      description="Pesquise e consulte contas. Os filtros e as ações disponíveis seguem os contratos da API."
+      description="Use a busca e os filtros para encontrar as contas que procura."
       showRegisterAction={false}
     >
-      {createdNotice && (
-        <p
-          aria-live="polite"
-          className="rounded-lg border border-outline bg-surface p-4 text-body-medium text-on-surface"
-          role="status"
-        >
-          {createdNotice}
-        </p>
+      {showCreatedToast && initialState.activationEmailStatus && (
+        <Toast
+          message={accountCreatedFeedback(initialState.activationEmailStatus)}
+          onDismiss={dismissCreatedToast}
+          tone={initialState.activationEmailStatus === 'sent' ? 'success' : 'warning'}
+        />
       )}
       <form
         aria-label="Filtros de contas"
@@ -280,7 +289,9 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
       >
         {filterOptionsError && profile !== 'administrator' && (
           <div className="space-y-3 rounded-lg border border-danger bg-error-surface p-4">
-            <p className="text-body-medium text-danger" role="alert">{filterOptionsError}</p>
+            <p className="text-body-medium text-danger" role="alert">
+              {filterOptionsError}
+            </p>
             <button
               className="account-button-secondary min-h-10 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary"
               onClick={() => {
@@ -325,8 +336,7 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
                 >
                   Ativação
                 </label>
-                <select
-                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                <SelectField
                   id="account-activation-filter"
                   onChange={(event) =>
                     setDraft({
@@ -339,7 +349,7 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
                   <option value="">Todas</option>
                   <option value="pending">Pendente</option>
                   <option value="activated">Ativada</option>
-                </select>
+                </SelectField>
               </div>
               <div className="space-y-2">
                 <label
@@ -348,8 +358,7 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
                 >
                   Matrícula
                 </label>
-                <select
-                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                <SelectField
                   id="account-enrollment-filter"
                   onChange={(event) =>
                     setDraft({
@@ -362,7 +371,7 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
                   <option value="">Todas</option>
                   <option value="active">Com matrícula ativa</option>
                   <option value="no_active_enrollment">Sem matrícula ativa</option>
-                </select>
+                </SelectField>
               </div>
             </>
           )}
@@ -375,8 +384,7 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
                 >
                   Matéria
                 </label>
-                <select
-                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                <SelectField
                   id="account-subject-filter"
                   disabled={filterOptionsLoading || Boolean(filterOptionsError)}
                   onChange={(event) => setDraft({ ...draft, subjectId: event.currentTarget.value })}
@@ -384,9 +392,11 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
                 >
                   <option value="">Todas as matérias</option>
                   {filterOptions.subjects.map((subject) => (
-                    <option key={subject.subjectId} value={subject.subjectId}>{subject.name}</option>
+                    <option key={subject.subjectId} value={subject.subjectId}>
+                      {subject.name}
+                    </option>
                   ))}
-                </select>
+                </SelectField>
               </div>
             </>
           )}
@@ -407,7 +417,9 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
           )}
         </div>
         {filterValidationError && (
-          <p className="text-body-medium text-danger" role="alert">{filterValidationError}</p>
+          <p className="text-body-medium text-danger" role="alert">
+            {filterValidationError}
+          </p>
         )}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
@@ -425,9 +437,9 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
           </button>
           <label className="flex items-center gap-2 text-body-medium text-on-surface sm:ml-auto">
             Itens por página
-            <select
+            <SelectField
               aria-label="Itens por página"
-              className="min-h-11 rounded-lg border border-outline bg-surface px-3 text-body-medium text-on-surface"
+              density="compact"
               onChange={(event) => changePageSize(event.currentTarget.value)}
               value={draft.pageSize}
             >
@@ -436,7 +448,7 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
                   {size}
                 </option>
               ))}
-            </select>
+            </SelectField>
           </label>
         </div>
       </form>
@@ -480,46 +492,50 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
               </p>
             </div>
           ) : (
-            <ul className="grid gap-4 lg:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-4">
               {result.items.map((account) => {
                 const id = accountIdentifier(account);
                 return (
                   <li key={id}>
                     <article className="panel-surface flex h-full flex-col gap-4 rounded-2xl bg-surface p-5">
-                      <div className="min-w-0">
-                        <h2 className="truncate text-title-large font-semibold text-on-surface">
-                          {account.name}
-                        </h2>
-                        <p className="break-all text-body-medium text-muted">{account.email}</p>
-                      </div>
-                      <dl className="flex flex-wrap gap-2 text-body-medium text-on-surface">
-                        <div>
-                          <dt className="sr-only">Ativação</dt>
-                          <dd>
-                            <Badge tone={account.activationStatus === 'activated' ? 'positive' : 'warning'}>
-                              {activationStatusLabel(account.activationStatus)}
-                            </Badge>
-                          </dd>
+                      <div className="flex min-w-0 items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <h2 className="truncate text-title-large font-semibold text-on-surface">
+                            {account.name}
+                          </h2>
+                          <p className="break-all text-body-medium text-muted">{account.email}</p>
+                          {'currentClass' in account && account.currentClass && (
+                            <p className="mt-2 text-body-medium text-on-surface">
+                              <span className="font-semibold">Turma:</span>{' '}
+                              {classLabel(account.currentClass)}
+                            </p>
+                          )}
                         </div>
-                        {'currentClass' in account && (
-                          <>
+                        <dl className="flex shrink-0 flex-col items-end gap-2 text-body-medium text-on-surface">
+                          <div>
+                            <dt className="sr-only">Ativação</dt>
+                            <dd>
+                              <Badge tone={activationStatusTone(account.activationStatus)}>
+                                {activationStatusLabel(account.activationStatus)}
+                              </Badge>
+                            </dd>
+                          </div>
+                          {'currentClass' in account && (
                             <div>
                               <dt className="sr-only">Matrícula</dt>
                               <dd>
-                                <Badge tone={account.enrollmentStatus === 'active' ? 'positive' : 'neutral'}>
+                                <Badge
+                                  tone={
+                                    account.enrollmentStatus === 'active' ? 'positive' : 'neutral'
+                                  }
+                                >
                                   {enrollmentStatusLabel(account.enrollmentStatus)}
                                 </Badge>
                               </dd>
                             </div>
-                            {account.currentClass && (
-                              <div className="flex flex-wrap gap-x-2">
-                                <dt className="font-semibold">Turma:</dt>
-                                <dd>{classLabel(account.currentClass)}</dd>
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </dl>
+                          )}
+                        </dl>
+                      </div>
                       <Link
                         className="account-button-secondary mt-auto inline-flex min-h-11 w-fit items-center rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         to={accountCollectionPath(profile) + '/' + encodeURIComponent(id)}

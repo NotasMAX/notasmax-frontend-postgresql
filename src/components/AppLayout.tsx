@@ -36,7 +36,7 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-surface-container">
-      <header className="border-b border-outline bg-surface">
+      <header className="border-b border-panel-outline bg-surface shadow-panel">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-6">
           <Link
             aria-label="NotasMAX, início da área administrativa"

@@ -67,6 +67,16 @@ export async function loadAccountDetail(
   }
 }
 
+export async function findAccountIdentifierByEmail(
+  profile: AccountProfile,
+  email: string,
+): Promise<string | null> {
+  const page = await loadAccountPage(profile, { search: email, page: 1, pageSize: 20 });
+  const normalizedEmail = email.trim().toLowerCase();
+  const account = page.items.find((item) => item.email.trim().toLowerCase() === normalizedEmail);
+  return account ? accountIdentifier(account) : null;
+}
+
 export async function createAccount(
   profile: AccountProfile,
   input: AccountCreateInput,

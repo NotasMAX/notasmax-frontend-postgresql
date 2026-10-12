@@ -22,6 +22,26 @@ const colorTokens = [
     foreground: 'var(--color-on-surface)',
   },
   {
+    name: '--color-success',
+    background: 'var(--color-success)',
+    foreground: 'var(--color-surface)',
+  },
+  {
+    name: '--color-success-surface',
+    background: 'var(--color-success-surface)',
+    foreground: 'var(--color-success)',
+  },
+  {
+    name: '--color-warning',
+    background: 'var(--color-warning)',
+    foreground: 'var(--color-surface)',
+  },
+  {
+    name: '--color-warning-surface',
+    background: 'var(--color-warning-surface)',
+    foreground: 'var(--color-warning)',
+  },
+  {
     name: '--color-surface',
     background: 'var(--color-surface)',
     foreground: 'var(--color-on-surface)',

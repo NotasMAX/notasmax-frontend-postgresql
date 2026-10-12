@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import type { AccountProfile, ActivationEmailStatus } from '../../api/adminAccounts';
 import {
@@ -8,11 +8,14 @@ import {
   type AccountDetail,
 } from '../../accounts/accountService';
 import { AccountPageShell } from './AccountPageShell';
+import { Badge } from '../../components/Badge';
+import { Toast, type ToastTone } from '../../components/Toast';
 import {
   accountCollectionPath,
   accountErrorMessage,
   activationFeedback,
   activationStatusLabel,
+  activationStatusTone,
   classLabel,
   civilDateLabel,
   enrollmentStatusLabel,
@@ -24,7 +27,11 @@ interface AccountDetailPageProps {
   readonly locationState?: unknown;
 }
 
-function readNotice(value: unknown): { emailChangeTo?: string; message?: string } {
+function readNotice(value: unknown): {
+  emailChangeTo?: string;
+  message?: string;
+  messageTone?: ToastTone;
+} {
   if (typeof value !== 'object' || value === null) {
     return {};
   }
@@ -32,6 +39,12 @@ function readNotice(value: unknown): { emailChangeTo?: string; message?: string 
   return {
     ...(typeof state.emailChangeTo === 'string' ? { emailChangeTo: state.emailChangeTo } : {}),
     ...(typeof state.message === 'string' ? { message: state.message } : {}),
+    ...(state.messageTone === 'success' ||
+    state.messageTone === 'info' ||
+    state.messageTone === 'warning' ||
+    state.messageTone === 'error'
+      ? { messageTone: state.messageTone }
+      : {}),
   };
 }
 
@@ -41,12 +54,15 @@ function isStudentDetail(account: AccountDetail) {
 
 export function AccountDetailPage({ profile, accountId, locationState }: AccountDetailPageProps) {
   const notice = readNotice(locationState);
+  const [noticeMessage, setNoticeMessage] = useState(notice.message ?? null);
   const [account, setAccount] = useState<AccountDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activationStatus, setActivationStatus] = useState<ActivationEmailStatus | null>(null);
   const [resendError, setResendError] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
+  const dismissActivationToast = useCallback(() => setActivationStatus(null), []);
+  const dismissNoticeToast = useCallback(() => setNoticeMessage(null), []);
 
   async function refresh() {
     setLoading(true);
@@ -90,6 +106,7 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
     setResending(true);
     setResendError(null);
     setActivationStatus(null);
+    setNoticeMessage(null);
     try {
       setActivationStatus(await resendActivation(accountIdentifier(account)));
     } catch (error) {
@@ -103,36 +120,36 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
     <AccountPageShell
       profile={profile}
       description="Consulte os dados cadastrais e os estados retornados pela API."
-    >
-      <div className="flex flex-wrap gap-3">
-        <Link
-          className="account-button-secondary inline-flex min-h-11 items-center rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          to={accountCollectionPath(profile)}
-        >
-          Voltar à lista
-        </Link>
-        {account && (
+      actions={
+        <>
           <Link
-            className="account-button-primary inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            to={
-              accountCollectionPath(profile) +
-              '/' +
-              encodeURIComponent(accountIdentifier(account)) +
-              '/editar'
-            }
+            className="account-button-secondary inline-flex min-h-11 items-center rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            to={accountCollectionPath(profile)}
           >
-            Editar conta
+            Voltar à lista
           </Link>
-        )}
-      </div>
-      {notice.message && (
-        <p
-          aria-live="polite"
-          className="rounded-lg border border-outline bg-surface p-4 text-body-medium text-on-surface"
-          role="status"
-        >
-          {notice.message}
-        </p>
+          {account && (
+            <Link
+              className="account-button-primary inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              to={
+                accountCollectionPath(profile) +
+                '/' +
+                encodeURIComponent(accountIdentifier(account)) +
+                '/editar'
+              }
+            >
+              Editar conta
+            </Link>
+          )}
+        </>
+      }
+    >
+      {noticeMessage && (
+        <Toast
+          message={noticeMessage}
+          onDismiss={dismissNoticeToast}
+          tone={notice.messageTone ?? 'success'}
+        />
       )}
       {notice.emailChangeTo && (
         <p
@@ -145,13 +162,11 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
         </p>
       )}
       {activationStatus && (
-        <p
-          aria-live="polite"
-          className="rounded-lg border border-outline bg-surface p-4 text-body-medium text-on-surface"
-          role="status"
-        >
-          {activationFeedback(activationStatus)}
-        </p>
+        <Toast
+          message={activationFeedback(activationStatus)}
+          onDismiss={dismissActivationToast}
+          tone={activationStatus === 'sent' ? 'success' : 'error'}
+        />
       )}
       {resendError && (
         <p
@@ -195,9 +210,9 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
                 </h2>
                 <p className="break-all text-body-medium text-muted">{account.email}</p>
               </div>
-              <span className="rounded-full border border-outline px-3 py-1 text-label-medium font-medium text-on-surface">
+              <Badge tone={activationStatusTone(account.activationStatus)}>
                 {activationStatusLabel(account.activationStatus)}
-              </span>
+              </Badge>
             </div>
             <dl className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -240,8 +255,7 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
             {account.activationStatus === 'pending' && (
               <div className="space-y-2 border-t border-outline pt-4">
                 <p className="text-body-medium text-muted">
-                  A conta está pendente de ativação. O reenvio informa a aceitação do pedido pelo
-                  serviço, não a entrega na caixa postal.
+                  Esta conta ainda precisa ser ativada. Você pode reenviar o link.
                 </p>
                 <button
                   className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"

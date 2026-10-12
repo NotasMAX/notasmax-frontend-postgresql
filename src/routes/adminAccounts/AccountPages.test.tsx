@@ -80,6 +80,26 @@ const pendingTeacher: TeacherAccountDetail = {
   activationStatus: 'pending',
 };
 
+const createdStudent: StudentAccountSummary = {
+  studentId: '202',
+  name: 'Katherine Johnson',
+  email: 'katherine@example.test',
+  activationStatus: 'pending',
+  enrollmentStatus: 'no_active_enrollment',
+  currentClass: null,
+};
+
+const createdStudentDetail: StudentAccountDetail = {
+  studentId: '202',
+  name: 'Katherine Johnson',
+  email: 'katherine@example.test',
+  activationStatus: 'pending',
+  guardianPhone: '555-0101',
+  enrollmentStatus: 'no_active_enrollment',
+  currentClass: null,
+  enrollments: [],
+};
+
 function page(
   items: readonly StudentAccountSummary[] = [],
   pageNumber = 1,
@@ -155,7 +175,7 @@ describe('account management pages', () => {
     const user = userEvent.setup();
 
     expect(await screen.findByText('Ada Lovelace')).toBeTruthy();
-    expect(screen.getByText('Com matrícula ativa', { selector: 'dd' })).toBeTruthy();
+    expect(screen.getByText('Com matrícula ativa', { selector: 'span' })).toBeTruthy();
     expect(screen.getByText('9ª série · ano letivo 2026')).toBeTruthy();
     expect(screen.getByLabelText('Ativação')).toBeTruthy();
     expect(screen.getByLabelText('Matrícula')).toBeTruthy();
@@ -170,8 +190,9 @@ describe('account management pages', () => {
     await screen.findByRole('option', { name: '2026' });
     await user.selectOptions(screen.getByLabelText('Ano letivo'), '2026');
     await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
-    expect((await screen.findByRole('alert')).textContent)
-      .toContain('Para filtrar por turma, selecione o ano letivo e a série.');
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Para filtrar por turma, selecione o ano letivo e a série.',
+    );
     await user.selectOptions(screen.getByLabelText('Série'), '9');
     await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
 
@@ -216,12 +237,14 @@ describe('account management pages', () => {
     await user.selectOptions(screen.getByLabelText('Série'), '9');
     await user.selectOptions(screen.getByLabelText('Matéria'), '7');
     await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
-    await waitFor(() => expect(accountService.loadAccountPage).toHaveBeenNthCalledWith(2, 'teacher', {
-      classId: '44',
-      subjectId: '7',
-      page: 1,
-      pageSize: 20,
-    }));
+    await waitFor(() =>
+      expect(accountService.loadAccountPage).toHaveBeenNthCalledWith(2, 'teacher', {
+        classId: '44',
+        subjectId: '7',
+        page: 1,
+        pageSize: 20,
+      }),
+    );
 
     unmount();
     vi.mocked(accountService.loadAccountPage).mockResolvedValue(page());
@@ -249,9 +272,10 @@ describe('account management pages', () => {
     expect(screen.getByRole('link', { name: 'Editar conta' })).toBeTruthy();
   });
 
-  it('returns to the student list filtered by the submitted email and shows creation status', async () => {
-    vi.mocked(accountService.createAccount).mockResolvedValue('failed');
-    vi.mocked(accountService.loadAccountPage).mockResolvedValue(page());
+  it('opens the created account details and shows a success toast', async () => {
+    vi.mocked(accountService.createAccount).mockResolvedValue('sent');
+    vi.mocked(accountService.loadAccountPage).mockResolvedValue(page([createdStudent]));
+    vi.mocked(accountService.loadAccountDetail).mockResolvedValue(createdStudentDetail);
     renderAt('/admin/contas/alunos/novo');
     const user = userEvent.setup();
 
@@ -260,14 +284,10 @@ describe('account management pages', () => {
     await user.type(screen.getByLabelText('Telefone do responsável'), '555-0101');
     await user.click(screen.getByRole('button', { name: 'Cadastrar conta' }));
 
-    const createdNotice = await screen.findByText(/Cadastro concluído/);
-    expect(createdNotice.textContent).toContain(
-      'Não foi possível solicitar a ativação. Tente novamente.',
-    );
-    expect(screen.getByLabelText('Buscar por nome ou e-mail')).toHaveProperty(
-      'value',
-      'katherine@example.test',
-    );
+    expect(await screen.findByRole('heading', { name: 'Katherine Johnson' })).toBeTruthy();
+    expect(
+      await screen.findByText('Conta cadastrada com sucesso. Solicitação de ativação recebida.'),
+    ).toBeTruthy();
     await waitFor(() =>
       expect(accountService.loadAccountPage).toHaveBeenCalledWith('student', {
         search: 'katherine@example.test',
@@ -280,6 +300,29 @@ describe('account management pages', () => {
       email: 'katherine@example.test',
       guardianPhone: '555-0101',
     });
+  });
+
+  it('falls back to the filtered list if the created account cannot be found', async () => {
+    vi.mocked(accountService.createAccount).mockResolvedValue('failed');
+    vi.mocked(accountService.loadAccountPage).mockResolvedValue(page());
+    renderAt('/admin/contas/alunos/novo');
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText('Nome completo'), 'Katherine Johnson');
+    await user.type(screen.getByLabelText('E-mail institucional'), 'katherine@example.test');
+    await user.type(screen.getByLabelText('Telefone do responsável'), '555-0101');
+    await user.click(screen.getByRole('button', { name: 'Cadastrar conta' }));
+
+    expect(await screen.findByRole('heading', { name: 'Contas de alunos' })).toBeTruthy();
+    expect(
+      await screen.findByText(
+        'Conta cadastrada com sucesso, mas não foi possível enviar o link de ativação.',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByLabelText('Buscar por nome ou e-mail')).toHaveProperty(
+      'value',
+      'katherine@example.test',
+    );
   });
 
   it('requires current administrator password for email change and offers explicit activation resend', async () => {
@@ -297,6 +340,7 @@ describe('account management pages', () => {
     await user.type(password, 'synthetic-current-password');
     await user.click(screen.getByRole('button', { name: 'Salvar alterações' }));
 
+    expect(await screen.findByText('Dados da conta atualizados.')).toBeTruthy();
     expect(await screen.findByText(/A conta precisará ser ativada no novo endereço/)).toBeTruthy();
     expect(screen.getByText(/A alteração não confirma a entrega do e-mail/)).toBeTruthy();
     expect(accountService.updateAccount).toHaveBeenCalledWith('teacher', '55', {
@@ -305,11 +349,7 @@ describe('account management pages', () => {
     });
 
     await user.click(await screen.findByRole('button', { name: 'Reenviar ativação' }));
-    expect(
-      await screen.findByText(
-        'O serviço aceitou a solicitação de ativação. Isso não confirma a entrega do e-mail.',
-      ),
-    ).toBeTruthy();
+    expect(await screen.findByText('Solicitação de ativação recebida.')).toBeTruthy();
     expect(accountService.resendActivation).toHaveBeenCalledWith('55');
   });
 

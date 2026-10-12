@@ -13,6 +13,7 @@ interface AccountPageShellProps {
   readonly profile: AccountProfile;
   readonly description: string;
   readonly children: ReactNode;
+  readonly actions?: ReactNode;
   readonly showRegisterAction?: boolean;
 }
 
@@ -20,6 +21,7 @@ export function AccountPageShell({
   profile,
   description,
   children,
+  actions,
   showRegisterAction = true,
 }: AccountPageShellProps) {
   return (
@@ -55,14 +57,17 @@ export function AccountPageShell({
             </NavLink>
           ))}
         </nav>
-        {showRegisterAction && (
-          <div className="flex justify-end">
-            <Link
-              className="account-button-primary inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              to={accountCollectionPath(profile) + '/novo'}
-            >
-              Cadastrar conta
-            </Link>
+        {(showRegisterAction || actions) && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {actions && <div className="flex flex-wrap gap-3">{actions}</div>}
+            {showRegisterAction && (
+              <Link
+                className="account-button-primary inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                to={accountCollectionPath(profile) + '/novo'}
+              >
+                Cadastrar conta
+              </Link>
+            )}
           </div>
         )}
       </div>

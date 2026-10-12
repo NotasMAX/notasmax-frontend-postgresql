@@ -9,7 +9,7 @@ interface BadgeProps {
 
 const toneClasses: Readonly<Record<BadgeTone, string>> = {
   neutral: 'bg-surface-container text-on-surface',
-  positive: 'bg-primary text-on-primary',
+  positive: 'bg-success text-on-primary',
   warning: 'bg-warning-strong text-on-primary',
   danger: 'bg-error-surface text-danger',
 };

@@ -4,6 +4,7 @@ import { ApiRequestError } from '../../api/problemDetails';
 import type { AdminClassOption } from '../../api/adminAcademicCatalog';
 import {
   accountCollectionPath,
+  accountCreatedFeedback,
   accountProfileFromPath,
   activationFeedback,
   buildAccountFilters,
@@ -111,7 +112,14 @@ describe('account UI contract helpers', () => {
   });
 
   it('does not claim email delivery for accepted activation requests', () => {
-    expect(activationFeedback('sent')).toContain('não confirma a entrega');
+    expect(activationFeedback('sent')).toBe('Solicitação de ativação recebida.');
     expect(activationFeedback('failed')).toContain('Tente novamente');
+  });
+
+  it('keeps account creation success clear when activation email sending fails', () => {
+    expect(accountCreatedFeedback('sent')).toContain('Conta cadastrada com sucesso.');
+    expect(accountCreatedFeedback('failed')).toContain(
+      'Conta cadastrada com sucesso, mas não foi possível enviar o link de ativação.',
+    );
   });
 });

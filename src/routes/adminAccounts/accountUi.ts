@@ -11,6 +11,7 @@ import type {
   AccountActivationStatus,
 } from '../../api/adminAccounts';
 import type { AdminClassOption } from '../../api/adminAcademicCatalog';
+import type { BadgeTone } from '../../components/Badge';
 
 export const ACCOUNT_PROFILE_PATHS: Readonly<Record<AccountProfile, string>> = {
   student: 'alunos',
@@ -49,6 +50,10 @@ export function activationStatusLabel(status: AccountActivationStatus): string {
   return status === 'activated' ? 'Ativada' : 'Pendente de ativação';
 }
 
+export function activationStatusTone(status: AccountActivationStatus): BadgeTone {
+  return status === 'activated' ? 'positive' : 'warning';
+}
+
 export function enrollmentStatusLabel(status: StudentEnrollmentStatus): string {
   return status === 'active' ? 'Com matrícula ativa' : 'Sem matrícula ativa';
 }
@@ -67,8 +72,14 @@ export function civilDateLabel(value: string): string {
 
 export function activationFeedback(status: ActivationEmailStatus): string {
   return status === 'sent'
-    ? 'O serviço aceitou a solicitação de ativação. Isso não confirma a entrega do e-mail.'
-    : 'Não foi possível solicitar a ativação. Tente novamente.';
+    ? 'Solicitação de ativação recebida.'
+    : 'Não foi possível enviar o link. Tente novamente.';
+}
+
+export function accountCreatedFeedback(status: ActivationEmailStatus): string {
+  return status === 'sent'
+    ? 'Conta cadastrada com sucesso. Solicitação de ativação recebida.'
+    : 'Conta cadastrada com sucesso, mas não foi possível enviar o link de ativação.';
 }
 
 export interface AccountFilterDraft {
@@ -92,10 +103,13 @@ export function buildAccountFilters(
     page,
     pageSize: draft.pageSize,
   };
-  const selectedClass = draft.schoolYear && draft.series
-    ? classes.find((item) => item.schoolYear === Number(draft.schoolYear)
-      && item.series === Number(draft.series))
-    : undefined;
+  const selectedClass =
+    draft.schoolYear && draft.series
+      ? classes.find(
+          (item) =>
+            item.schoolYear === Number(draft.schoolYear) && item.series === Number(draft.series),
+        )
+      : undefined;
   if (profile === 'student') {
     return {
       ...common,
