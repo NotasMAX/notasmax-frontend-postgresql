@@ -14,11 +14,12 @@
   --color-primary-hover: #104575;
   --color-on-primary: #ffffff;
   --color-highlight: #fac239;
+  --color-warning-strong: #c2410c;
   --color-surface: #ffffff;
   --color-surface-container: #f4f7fa;
   --color-on-surface: #043666;
   --color-muted: #404040;
-  --color-outline: #687782;
+  --color-outline: #aeb8c0;
   --color-panel-outline: #d9d9d9;
   --shadow-panel: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
   --color-danger: #b50909;
@@ -120,6 +121,15 @@ body {
 
 .panel-surface {
   border: 1px solid var(--color-panel-outline);
+  box-shadow: var(--shadow-panel);
+}
+
+.account-button-primary {
+  box-shadow: var(--shadow-panel);
+}
+
+.account-button-secondary {
+  border-color: var(--color-panel-outline);
   box-shadow: var(--shadow-panel);
 }
 

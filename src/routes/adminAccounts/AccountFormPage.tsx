@@ -283,7 +283,7 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
             {loadError}
           </p>
           <button
-            className="min-h-11 rounded-lg border border-outline bg-surface px-4 text-label-large font-medium text-primary"
+            className="account-button-secondary min-h-11 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary"
             onClick={() => {
               setLoading(true);
               setLoadError(null);
@@ -437,14 +437,14 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
           )}
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
-              className="min-h-12 rounded-lg bg-primary px-6 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
+            className="account-button-primary min-h-12 rounded-lg bg-primary px-6 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
               disabled={saving}
               type="submit"
             >
               {saving ? 'Salvando…' : editing ? 'Salvar alterações' : 'Cadastrar conta'}
             </button>
             <Link
-              className="inline-flex min-h-12 items-center justify-center rounded-lg border border-outline px-6 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="account-button-secondary inline-flex min-h-12 items-center justify-center rounded-lg border border-panel-outline px-6 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               to={
                 editing && account
                   ? accountCollectionPath(profile) +

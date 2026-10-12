@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router';
+import { Link, NavLink, Outlet, useMatch, useNavigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 
 export function AppLayout() {
@@ -7,6 +7,7 @@ export function AppLayout() {
   const navigate = useNavigate();
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const accountsMatch = useMatch('/admin/contas/*');
 
   if (auth.state.status !== 'authenticated') {
     return null;
@@ -56,11 +57,24 @@ export function AppLayout() {
               {firstName ? `Bem-vindo(a), ${firstName}!` : 'Bem-vindo(a)!'}
             </p>
             <button
-              className="min-h-11 rounded-lg border border-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
+              className="account-button-secondary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
               disabled={pending}
               onClick={signOut}
               type="button"
             >
+              <svg
+                aria-hidden="true"
+                className="size-5 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.8"
+                viewBox="0 0 24 24"
+              >
+                <path d="M10 17l5-5-5-5M15 12H3" />
+                <path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" />
+              </svg>
               {pending ? 'Saindo…' : 'Sair'}
             </button>
           </div>
@@ -71,12 +85,47 @@ export function AppLayout() {
           aria-label="Navegação administrativa"
           className="panel-surface flex gap-2 rounded-2xl bg-surface p-3 lg:flex-col"
         >
-          <NavLink end to="/admin" className={linkClass}>
+          <NavLink
+            end
+            to="/admin"
+            className={({ isActive }) =>
+              `inline-flex items-center gap-2 ${linkClass({ isActive })}`
+            }
+          >
+            <svg
+              aria-hidden="true"
+              className="size-5 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.8"
+              viewBox="0 0 24 24"
+            >
+              <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z" />
+            </svg>
             Início
           </NavLink>
-          <NavLink to="/admin/contas/alunos" className={linkClass}>
+          <Link
+            aria-current={accountsMatch ? 'page' : undefined}
+            className={`inline-flex items-center gap-2 ${linkClass({ isActive: Boolean(accountsMatch) })}`}
+            to="/admin/contas/alunos"
+          >
+            <svg
+              aria-hidden="true"
+              className="size-5 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.8"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="9" cy="8" r="3" />
+              <path d="M3.5 20a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.8M17 14a5.5 5.5 0 0 1 3.5 5" />
+            </svg>
             Contas
-          </NavLink>
+          </Link>
         </nav>
         <main className="min-w-0">
           {errorMessage && (

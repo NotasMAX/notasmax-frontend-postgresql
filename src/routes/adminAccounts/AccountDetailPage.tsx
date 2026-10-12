@@ -106,14 +106,14 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
     >
       <div className="flex flex-wrap gap-3">
         <Link
-          className="inline-flex min-h-11 items-center rounded-lg border border-outline bg-surface px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="account-button-secondary inline-flex min-h-11 items-center rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           to={accountCollectionPath(profile)}
         >
           Voltar à lista
         </Link>
         {account && (
           <Link
-            className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="account-button-primary inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             to={
               accountCollectionPath(profile) +
               '/' +
@@ -172,7 +172,7 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
             {errorMessage}
           </p>
           <button
-            className="min-h-11 rounded-lg border border-outline bg-surface px-4 text-label-large font-medium text-primary"
+            className="account-button-secondary min-h-11 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary"
             onClick={() => void refresh()}
             type="button"
           >
@@ -244,7 +244,7 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
                   serviço, não a entrega na caixa postal.
                 </p>
                 <button
-                  className="min-h-11 rounded-lg border border-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
+                  className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
                   disabled={resending}
                   onClick={() => void resend()}
                   type="button"

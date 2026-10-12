@@ -18,6 +18,7 @@ import {
   type AccountListItem,
 } from '../../accounts/accountService';
 import { AccountPageShell } from './AccountPageShell';
+import { Badge } from '../../components/Badge';
 import {
   accountCollectionPath,
   accountErrorMessage,
@@ -261,6 +262,7 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
     <AccountPageShell
       profile={profile}
       description="Pesquise e consulte contas. Os filtros e as ações disponíveis seguem os contratos da API."
+      showRegisterAction={false}
     >
       {createdNotice && (
         <p
@@ -280,7 +282,7 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
           <div className="space-y-3 rounded-lg border border-danger bg-error-surface p-4">
             <p className="text-body-medium text-danger" role="alert">{filterOptionsError}</p>
             <button
-              className="min-h-10 rounded-lg border border-outline bg-surface px-4 text-label-large font-medium text-primary"
+              className="account-button-secondary min-h-10 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary"
               onClick={() => {
                 setFilterOptionsLoading(true);
                 setFilterOptionsError(null);
@@ -409,13 +411,13 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
         )}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
-            className="min-h-11 rounded-lg bg-primary px-5 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="account-button-primary min-h-11 rounded-lg bg-primary px-5 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             type="submit"
           >
             Aplicar filtros
           </button>
           <button
-            className="min-h-11 rounded-lg border border-outline px-5 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-5 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             onClick={clearFilters}
             type="button"
           >
@@ -439,6 +441,15 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
         </div>
       </form>
 
+      <div className="flex justify-end">
+        <Link
+          className="account-button-primary inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          to={accountCollectionPath(profile) + '/novo'}
+        >
+          Cadastrar conta
+        </Link>
+      </div>
+
       {loading ? (
         <p aria-live="polite" className="py-8 text-center text-body-large text-muted" role="status">
           Carregando contas…
@@ -449,7 +460,7 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
             {errorMessage}
           </p>
           <button
-            className="min-h-11 rounded-lg border border-outline bg-surface px-4 text-label-large font-medium text-primary"
+            className="account-button-secondary min-h-11 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary"
             onClick={() => {
               setLoading(true);
               setErrorMessage(null);
@@ -462,15 +473,6 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
         </div>
       ) : result ? (
         <>
-          <p aria-live="polite" className="text-body-medium text-muted" role="status">
-            {result.pagination.totalItems === 0
-              ? 'Nenhuma conta encontrada.'
-              : result.pagination.totalItems +
-                ' contas encontradas · página ' +
-                result.pagination.page +
-                ' de ' +
-                result.pagination.totalPages}
-          </p>
           {result.items.length === 0 ? (
             <div className="panel-surface rounded-2xl bg-surface p-6">
               <p className="text-body-large text-on-surface">
@@ -490,16 +492,24 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
                         </h2>
                         <p className="break-all text-body-medium text-muted">{account.email}</p>
                       </div>
-                      <dl className="grid gap-2 text-body-medium text-on-surface">
-                        <div className="flex flex-wrap gap-x-2">
-                          <dt className="font-semibold">Ativação:</dt>
-                          <dd>{activationStatusLabel(account.activationStatus)}</dd>
+                      <dl className="flex flex-wrap gap-2 text-body-medium text-on-surface">
+                        <div>
+                          <dt className="sr-only">Ativação</dt>
+                          <dd>
+                            <Badge tone={account.activationStatus === 'activated' ? 'positive' : 'warning'}>
+                              {activationStatusLabel(account.activationStatus)}
+                            </Badge>
+                          </dd>
                         </div>
                         {'currentClass' in account && (
                           <>
-                            <div className="flex flex-wrap gap-x-2">
-                              <dt className="font-semibold">Matrícula:</dt>
-                              <dd>{enrollmentStatusLabel(account.enrollmentStatus)}</dd>
+                            <div>
+                              <dt className="sr-only">Matrícula</dt>
+                              <dd>
+                                <Badge tone={account.enrollmentStatus === 'active' ? 'positive' : 'neutral'}>
+                                  {enrollmentStatusLabel(account.enrollmentStatus)}
+                                </Badge>
+                              </dd>
                             </div>
                             {account.currentClass && (
                               <div className="flex flex-wrap gap-x-2">
@@ -511,7 +521,7 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
                         )}
                       </dl>
                       <Link
-                        className="mt-auto inline-flex min-h-11 w-fit items-center rounded-lg border border-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        className="account-button-secondary mt-auto inline-flex min-h-11 w-fit items-center rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         to={accountCollectionPath(profile) + '/' + encodeURIComponent(id)}
                       >
                         Ver detalhes
@@ -522,28 +532,39 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
               })}
             </ul>
           )}
-          <nav aria-label="Paginação de contas" className="flex flex-wrap items-center gap-3">
-            <button
-              className="min-h-11 rounded-lg border border-outline bg-surface px-4 text-label-large font-medium text-primary disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={loading || filters.page <= 1}
-              onClick={() => changePage(filters.page - 1)}
-              type="button"
-            >
-              Anterior
-            </button>
-            <button
-              className="min-h-11 rounded-lg border border-outline bg-surface px-4 text-label-large font-medium text-primary disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={
-                loading ||
-                result.pagination.totalPages === 0 ||
-                filters.page >= result.pagination.totalPages
-              }
-              onClick={() => changePage(filters.page + 1)}
-              type="button"
-            >
-              Próxima
-            </button>
-          </nav>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p aria-live="polite" className="text-body-medium text-muted" role="status">
+              {result.pagination.totalItems === 0
+                ? 'Nenhuma conta encontrada.'
+                : result.pagination.totalItems +
+                  ' contas encontradas · página ' +
+                  result.pagination.page +
+                  ' de ' +
+                  result.pagination.totalPages}
+            </p>
+            <nav aria-label="Paginação de contas" className="flex flex-wrap items-center gap-3">
+              <button
+                className="account-button-secondary min-h-11 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={loading || filters.page <= 1}
+                onClick={() => changePage(filters.page - 1)}
+                type="button"
+              >
+                Anterior
+              </button>
+              <button
+                className="account-button-secondary min-h-11 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={
+                  loading ||
+                  result.pagination.totalPages === 0 ||
+                  filters.page >= result.pagination.totalPages
+                }
+                onClick={() => changePage(filters.page + 1)}
+                type="button"
+              >
+                Próxima
+              </button>
+            </nav>
+          </div>
         </>
       ) : null}
     </AccountPageShell>

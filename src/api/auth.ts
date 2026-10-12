@@ -6,24 +6,48 @@ export interface AuthenticatedUser {
   readonly profile: string;
 }
 
-interface AuthResponse {
-  readonly user: AuthenticatedUser;
-}
-
 export const ADMINISTRATOR_PROFILE = 'administrador';
 
 export function isAdministratorProfile(profile: string): boolean {
   return profile === ADMINISTRATOR_PROFILE;
 }
 
+export function isAuthenticatedUser(value: unknown): value is AuthenticatedUser {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const user = value as Record<string, unknown>;
+  return (
+    typeof user.id === 'string' &&
+    user.id.length > 0 &&
+    typeof user.displayName === 'string' &&
+    typeof user.profile === 'string' &&
+    user.profile.length > 0
+  );
+}
+
+function userFromResponse(value: unknown): AuthenticatedUser {
+  if (typeof value !== 'object' || value === null || !('user' in value)) {
+    throw new Error('A API retornou uma resposta de sessão inválida.');
+  }
+
+  const user = value.user;
+  if (!isAuthenticatedUser(user)) {
+    throw new Error('A API retornou uma resposta de sessão inválida.');
+  }
+
+  return user;
+}
+
 export async function createSession(email: string, password: string): Promise<AuthenticatedUser> {
-  const response = await apiClient.post<AuthResponse>('/api/v1/auth/sessions', { email, password });
-  return response.data.user;
+  const response = await apiClient.post<unknown>('/api/v1/auth/sessions', { email, password });
+  return userFromResponse(response.data);
 }
 
 export async function getCurrentSession(): Promise<AuthenticatedUser> {
-  const response = await apiClient.get<AuthResponse>('/api/v1/auth/me');
-  return response.data.user;
+  const response = await apiClient.get<unknown>('/api/v1/auth/me');
+  return userFromResponse(response.data);
 }
 
 export async function endCurrentSession(): Promise<void> {

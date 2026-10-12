@@ -1,4 +1,8 @@
-import { isAdministratorProfile, type AuthenticatedUser } from '../api/auth';
+import {
+  isAdministratorProfile,
+  isAuthenticatedUser,
+  type AuthenticatedUser,
+} from '../api/auth';
 
 export { isAuthenticationRequiredError } from '../api/problemDetails';
 
@@ -19,7 +23,11 @@ export type SessionAction =
 
 export const initialSessionState: SessionState = { status: 'loading' };
 
-export function sessionStateForUser(user: AuthenticatedUser): SessionState {
+export function sessionStateForUser(user: unknown): SessionState {
+  if (!isAuthenticatedUser(user)) {
+    return { status: 'unavailable' };
+  }
+
   return isAdministratorProfile(user.profile)
     ? { status: 'authenticated', user }
     : { status: 'forbidden' };
