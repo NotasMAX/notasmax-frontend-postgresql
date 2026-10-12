@@ -1,8 +1,4 @@
-import {
-  isAdministratorProfile,
-  isAuthenticatedUser,
-  type AuthenticatedUser,
-} from '../api/auth';
+import { isAdministratorProfile, isAuthenticatedUser, type AuthenticatedUser } from '../api/auth';
 
 export { isAuthenticationRequiredError } from '../api/problemDetails';
 

@@ -29,17 +29,15 @@ export interface AccountFilterOptions {
 }
 
 async function listClassesForSchoolYear(schoolYear: number): Promise<AdminClassOption[]> {
-  const response = await apiClient.get<PaginatedItems<AdminClassOption>>(
-    '/api/v1/admin/classes',
-    { params: { schoolYear, page: 1, pageSize: 100 } },
-  );
+  const response = await apiClient.get<PaginatedItems<AdminClassOption>>('/api/v1/admin/classes', {
+    params: { schoolYear, page: 1, pageSize: 100 },
+  });
   const classes = [...response.data.items];
 
   for (let page = 2; page <= response.data.pagination.totalPages; page += 1) {
-    const next = await apiClient.get<PaginatedItems<AdminClassOption>>(
-      '/api/v1/admin/classes',
-      { params: { schoolYear, page, pageSize: 100 } },
-    );
+    const next = await apiClient.get<PaginatedItems<AdminClassOption>>('/api/v1/admin/classes', {
+      params: { schoolYear, page, pageSize: 100 },
+    });
     classes.push(...next.data.items);
   }
 
@@ -48,17 +46,15 @@ async function listClassesForSchoolYear(schoolYear: number): Promise<AdminClassO
 
 async function listAllSubjects(): Promise<AdminSubjectOption[]> {
   const pageSize = 100;
-  const first = await apiClient.get<PaginatedItems<AdminSubjectOption>>(
-    '/api/v1/admin/subjects',
-    { params: { page: 1, pageSize } },
-  );
+  const first = await apiClient.get<PaginatedItems<AdminSubjectOption>>('/api/v1/admin/subjects', {
+    params: { page: 1, pageSize },
+  });
   const subjects = [...first.data.items];
 
   for (let page = 2; page <= first.data.pagination.totalPages; page += 1) {
-    const next = await apiClient.get<PaginatedItems<AdminSubjectOption>>(
-      '/api/v1/admin/subjects',
-      { params: { page, pageSize } },
-    );
+    const next = await apiClient.get<PaginatedItems<AdminSubjectOption>>('/api/v1/admin/subjects', {
+      params: { page, pageSize },
+    });
     subjects.push(...next.data.items);
   }
 

@@ -36,10 +36,7 @@ export function AccountPageShell({
         <p className="max-w-3xl text-body-large leading-6 text-muted">{description}</p>
       </header>
       <div className="space-y-3">
-        <nav
-          aria-label="Perfis de contas"
-          className="grid grid-cols-1 gap-3 sm:grid-cols-3"
-        >
+        <nav aria-label="Perfis de contas" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {(Object.keys(ACCOUNT_PROFILE_PATHS) as AccountProfile[]).map((item) => (
             <NavLink
               key={item}

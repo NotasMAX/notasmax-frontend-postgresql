@@ -2,12 +2,7 @@ import { useEffect } from 'react';
 
 export type ToastTone = 'success' | 'info' | 'warning' | 'error';
 export type ToastPosition =
-  | 'top-left'
-  | 'top-center'
-  | 'top-right'
-  | 'bottom-left'
-  | 'bottom-center'
-  | 'bottom-right';
+  'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
 
 interface ToastProps {
   readonly message: string;
@@ -37,7 +32,8 @@ const toneClasses: Readonly<Record<ToastTone, string>> = {
 const iconPaths: Readonly<Record<ToastTone, string>> = {
   success: 'M5 12l4 4L19 6',
   info: 'M12 16v-4m0-4h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z',
-  warning: 'M12 9v4m0 4h.01M10.3 3.9 1.8 18.2A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z',
+  warning:
+    'M12 9v4m0 4h.01M10.3 3.9 1.8 18.2A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z',
   error: 'M15 9l-6 6m0-6 6 6m5-3a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z',
 };
 
