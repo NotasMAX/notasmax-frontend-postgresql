@@ -8,10 +8,16 @@ import {
 } from '../auth/sensitiveLink';
 import { AppLayout } from '../components/AppLayout';
 import { AdminHomePage } from '../routes/AdminHomePage';
+import {
+  AdminAccountDetailRoute,
+  AdminAccountFormRoute,
+  AdminAccountListRoute,
+} from '../routes/adminAccounts/AccountRoutes';
 import { LoginPage } from '../routes/LoginPage';
 import { NotFoundPage } from '../routes/NotFoundPage';
 import { PasswordActionPage } from '../routes/PasswordActionPage';
 import { PasswordResetRequestPage } from '../routes/PasswordResetRequestPage';
+import { developmentRoutes } from './developmentRoutes';
 
 function RequireAdministrator() {
   const { state, retrySessionLookup } = useAuth();
@@ -141,8 +147,19 @@ export function AppRoutes({ sensitiveLink, setSensitiveLink }: AppRoutesProps) {
       <Route element={<RequireAdministrator />}>
         <Route element={<AppLayout />}>
           <Route path="admin" element={<AdminHomePage />} />
+          <Route path="admin/contas" element={<Navigate to="/admin/contas/alunos" replace />} />
+          <Route path="admin/contas/:profile" element={<AdminAccountListRoute />} />
+          <Route path="admin/contas/:profile/novo" element={<AdminAccountFormRoute />} />
+          <Route
+            path="admin/contas/:profile/:accountId/editar"
+            element={<AdminAccountFormRoute />}
+          />
+          <Route path="admin/contas/:profile/:accountId" element={<AdminAccountDetailRoute />} />
         </Route>
       </Route>
+
+      {developmentRoutes}
+
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

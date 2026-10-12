@@ -19,6 +19,8 @@
   --color-on-surface: #043666;
   --color-muted: #404040;
   --color-outline: #687782;
+  --color-panel-outline: #d9d9d9;
+  --shadow-panel: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
   --color-danger: #b50909;
   --color-error-surface: #fff2f1;
   --text-display-large: 3.5625rem;
@@ -114,6 +116,11 @@ body {
 
 .auth-panel {
   background-color: rgb(255 255 255 / var(--auth-panel-alpha));
+}
+
+.panel-surface {
+  border: 1px solid var(--color-panel-outline);
+  box-shadow: var(--shadow-panel);
 }
 
 .auth-panel a {

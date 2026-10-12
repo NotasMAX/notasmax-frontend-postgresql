@@ -26,6 +26,8 @@ import {
   type SessionState,
 } from './sessionState';
 
+type SessionLookupResult = 'authenticated' | 'anonymous' | 'forbidden' | 'unavailable' | 'stale';
+
 interface AuthContextValue {
   readonly state: SessionState;
   activateAccount(token: string, password: string): Promise<void>;
@@ -33,7 +35,8 @@ interface AuthContextValue {
   login(email: string, password: string): Promise<boolean>;
   logout(): Promise<'ended' | 'expired'>;
   requestPasswordReset(email: string): Promise<void>;
-  retrySessionLookup(): Promise<void>;
+  retrySessionLookup(): Promise<SessionLookupResult>;
+  revalidateSessionAfterPasswordReset(): Promise<SessionLookupResult>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -74,26 +77,43 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
     });
   }, [state.status]);
 
-  const retrySessionLookup = useCallback(async () => {
-    const hadAuthenticatedSession = state.status === 'authenticated';
-    const requestGeneration = ++sessionLookupGeneration.current;
-    dispatch({ type: 'loading' });
-    try {
-      const user = await getCurrentSession();
-      if (requestGeneration === sessionLookupGeneration.current) {
+  const lookupSession = useCallback(
+    async (hadAuthenticatedSession: boolean): Promise<SessionLookupResult> => {
+      const requestGeneration = ++sessionLookupGeneration.current;
+      dispatch({ type: 'loading' });
+      try {
+        const user = await getCurrentSession();
+        if (requestGeneration !== sessionLookupGeneration.current) {
+          return 'stale';
+        }
         dispatch({ type: 'loaded', user });
+        return isAdministratorProfile(user.profile) ? 'authenticated' : 'forbidden';
+      } catch (error) {
+        if (isAuthenticationRequiredError(error)) {
+          if (requestGeneration === sessionLookupGeneration.current) {
+            dispatch({ type: hadAuthenticatedSession ? 'expired' : 'anonymous' });
+          }
+          return 'anonymous';
+        }
+        if (requestGeneration === sessionLookupGeneration.current) {
+          dispatch({ type: 'unavailable' });
+          return 'unavailable';
+        }
+        return 'stale';
       }
-    } catch (error) {
-      if (requestGeneration !== sessionLookupGeneration.current) {
-        return;
-      }
-      if (isAuthenticationRequiredError(error)) {
-        dispatch({ type: hadAuthenticatedSession ? 'expired' : 'anonymous' });
-      } else {
-        dispatch({ type: 'unavailable' });
-      }
-    }
-  }, [state.status]);
+    },
+    [],
+  );
+
+  const retrySessionLookup = useCallback(
+    () => lookupSession(state.status === 'authenticated'),
+    [lookupSession, state.status],
+  );
+
+  const revalidateSessionAfterPasswordReset = useCallback(
+    () => lookupSession(state.status === 'authenticated'),
+    [lookupSession, state.status],
+  );
 
   const login = useCallback(async (email: string, password: string) => {
     const user: AuthenticatedUser = await createSession(email, password);
@@ -135,10 +155,11 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
       completePasswordReset,
       login,
       logout,
+      revalidateSessionAfterPasswordReset,
       requestPasswordReset,
       retrySessionLookup,
     }),
-    [state, login, logout, retrySessionLookup],
+    [state, login, logout, revalidateSessionAfterPasswordReset, retrySessionLookup],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

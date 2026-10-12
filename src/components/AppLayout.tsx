@@ -69,10 +69,13 @@ export function AppLayout() {
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:px-6 lg:py-8">
         <nav
           aria-label="Navegação administrativa"
-          className="flex gap-2 rounded-2xl border border-outline bg-surface p-3 lg:flex-col"
+          className="panel-surface flex gap-2 rounded-2xl bg-surface p-3 lg:flex-col"
         >
           <NavLink end to="/admin" className={linkClass}>
             Início
+          </NavLink>
+          <NavLink to="/admin/contas/alunos" className={linkClass}>
+            Contas
           </NavLink>
         </nav>
         <main className="min-w-0">

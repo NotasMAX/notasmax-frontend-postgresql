@@ -69,6 +69,7 @@ export function PasswordActionPage({
   const [pending, setPending] = useState(false);
   const [invalidToken, setInvalidToken] = useState(false);
   const [invalidTokenMessage, setInvalidTokenMessage] = useState<string | null>(null);
+  const [sessionRevalidationUnavailable, setSessionRevalidationUnavailable] = useState(false);
   const validationErrorId = `${flow}-password-validation-error`;
   const validationMessage = passwordValidationMessage(validationError);
   const passwordInvalid =
@@ -114,6 +115,15 @@ export function PasswordActionPage({
       onTokenCleared();
       setPassword('');
       setConfirmation('');
+
+      if (flow === 'password-reset') {
+        const result = await auth.revalidateSessionAfterPasswordReset();
+        if (result === 'unavailable' || result === 'stale') {
+          setSessionRevalidationUnavailable(true);
+          return;
+        }
+      }
+
       navigate('/', { replace: true, state: { message: content.successMessage } });
     } catch (error) {
       if (error instanceof ApiRequestError && error.problem?.code === content.invalidCode) {
@@ -139,9 +149,42 @@ export function PasswordActionPage({
     }
   }
 
+  async function retrySessionAfterReset() {
+    setPending(true);
+    setSessionRevalidationUnavailable(false);
+    try {
+      const result = await auth.retrySessionLookup();
+      if (result === 'unavailable' || result === 'stale') {
+        setSessionRevalidationUnavailable(true);
+        return;
+      }
+      navigate('/', { replace: true, state: { message: content.successMessage } });
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <AuthPageLayout title={content.title} description={content.description}>
-      {!token || invalidToken ? (
+      {sessionRevalidationUnavailable ? (
+        <div className="space-y-5">
+          <p
+            aria-live="assertive"
+            className="rounded-lg border border-danger bg-error-surface px-4 py-3 text-body-medium text-danger"
+            role="alert"
+          >
+            A senha foi alterada, mas não foi possível confirmar sua sessão. Tente novamente.
+          </p>
+          <button
+            className="min-h-12 rounded-lg bg-primary px-6 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
+            disabled={pending}
+            onClick={() => void retrySessionAfterReset()}
+            type="button"
+          >
+            {pending ? 'Verificando sessão…' : 'Tentar novamente'}
+          </button>
+        </div>
+      ) : !token || invalidToken ? (
         <div className="space-y-5">
           <p
             aria-live="assertive"

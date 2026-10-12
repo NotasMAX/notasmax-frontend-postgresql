@@ -74,7 +74,8 @@ describe('auth flow accessibility regressions', () => {
       expect(panelStart).toBeGreaterThanOrEqual(0);
       expect(markup).toContain('w-full max-w-[30rem]');
       expect(markup).toContain('auth-page flex min-h-screen items-center justify-center px-4');
-      expect(markup).toContain('auth-panel rounded-2xl border border-white/90 p-5 sm:p-8');
+      expect(markup).toContain('auth-panel panel-surface rounded-2xl p-5 sm:p-8');
+      expect(markup).not.toContain('border-white/90');
       expect(markup).toContain('min-h-12 w-full rounded-lg border border-outline');
       expect(logoPosition).toBeGreaterThan(panelStart);
       expect(headerPosition).toBeGreaterThan(logoPosition);

@@ -536,6 +536,81 @@ describe('mounted authentication flows', () => {
     },
   );
 
+  it('revalidates and preserves an authenticated administrator session after password reset', async () => {
+    vi.mocked(authApi.getCurrentSession)
+      .mockResolvedValueOnce(administrator)
+      .mockResolvedValueOnce(administrator);
+    vi.mocked(authApi.completePasswordReset).mockResolvedValue(undefined);
+    renderMemoryApplication(
+      '/redefinir-senha',
+      sensitiveLink('password-reset', 'synthetic-reset-token'),
+    );
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Nova senha'), testPassword);
+    await user.type(screen.getByLabelText('Confirmar nova senha'), testPassword);
+    await user.click(screen.getByRole('button', { name: 'Confirmar senha' }));
+
+    expect(
+      await screen.findByRole('navigation', { name: 'Navegação administrativa' }),
+    ).toBeTruthy();
+    expect(currentPath()).toBe('/admin');
+    expect(authApi.getCurrentSession).toHaveBeenCalledTimes(2);
+    expect(authApi.completePasswordReset).toHaveBeenCalledOnce();
+  });
+
+  it('clears the local authenticated session after password reset when /me returns 401', async () => {
+    vi.mocked(authApi.getCurrentSession)
+      .mockResolvedValueOnce(administrator)
+      .mockRejectedValueOnce(authenticationRequiredError());
+    vi.mocked(authApi.completePasswordReset).mockResolvedValue(undefined);
+    renderMemoryApplication(
+      '/redefinir-senha',
+      sensitiveLink('password-reset', 'synthetic-reset-token'),
+    );
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Nova senha'), testPassword);
+    await user.type(screen.getByLabelText('Confirmar nova senha'), testPassword);
+    await user.click(screen.getByRole('button', { name: 'Confirmar senha' }));
+
+    expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeTruthy();
+    expect(currentPath()).toBe('/');
+    expect(screen.queryByRole('navigation', { name: 'Navegação administrativa' })).toBeNull();
+    expect(authApi.getCurrentSession).toHaveBeenCalledTimes(2);
+    expect(authApi.completePasswordReset).toHaveBeenCalledOnce();
+  });
+
+  it('does not confirm a session when post-reset validation is unavailable and offers retry', async () => {
+    vi.mocked(authApi.getCurrentSession)
+      .mockResolvedValueOnce(administrator)
+      .mockRejectedValueOnce(new Error('synthetic local network failure'))
+      .mockResolvedValueOnce(administrator);
+    vi.mocked(authApi.completePasswordReset).mockResolvedValue(undefined);
+    renderMemoryApplication(
+      '/redefinir-senha',
+      sensitiveLink('password-reset', 'synthetic-reset-token'),
+    );
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Nova senha'), testPassword);
+    await user.type(screen.getByLabelText('Confirmar nova senha'), testPassword);
+    await user.click(screen.getByRole('button', { name: 'Confirmar senha' }));
+
+    expect(
+      await screen.findByText(
+        'A senha foi alterada, mas não foi possível confirmar sua sessão. Tente novamente.',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole('navigation', { name: 'Navegação administrativa' })).toBeNull();
+    expect(currentPath()).toBe('/redefinir-senha');
+
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+
+    expect(
+      await screen.findByRole('navigation', { name: 'Navegação administrativa' }),
+    ).toBeTruthy();
+    expect(currentPath()).toBe('/admin');
+    expect(authApi.getCurrentSession).toHaveBeenCalledTimes(3);
+    expect(authApi.completePasswordReset).toHaveBeenCalledOnce();
+  });
   it.each(passwordFlows)(
     'shows and associates $name mismatch feedback without calling password APIs',
     async (flowCase) => {

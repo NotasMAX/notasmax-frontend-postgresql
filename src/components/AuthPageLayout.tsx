@@ -16,7 +16,7 @@ export function AuthPageLayout({
   return (
     <div className="auth-page flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
       <main className="w-full max-w-[30rem]">
-        <section className="auth-panel rounded-2xl border border-white/90 p-5 sm:p-8">
+        <section className="auth-panel panel-surface rounded-2xl p-5 sm:p-8">
           <div className="mb-6 flex justify-center sm:mb-8">
             <img
               alt="Logo oficial do NotasMAX"
