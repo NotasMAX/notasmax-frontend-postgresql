@@ -4,12 +4,17 @@ import { apiClient } from './client';
 import {
   createAdministratorAccount,
   createStudentAccount,
+  createTeacherAccount,
+  getAdministratorAccount,
   getStudentAccount,
+  getTeacherAccount,
   listAdministratorAccounts,
   listStudentAccounts,
   listTeacherAccounts,
   resendAccountActivation,
+  updateAdministratorAccount,
   updateStudentAccount,
+  updateTeacherAccount,
 } from './adminAccounts';
 
 vi.mock('./client', () => ({
@@ -130,5 +135,54 @@ describe('administrative account API boundary', () => {
       email: 'grace@example.test',
     });
     expect(apiClient.post).toHaveBeenNthCalledWith(2, '/api/v1/admin/users/101/activation-resends');
+  });
+
+  it('maps teacher and administrator create, detail, and update calls to their endpoints', async () => {
+    const teacherDetail = {
+      teacherId: '202',
+      name: 'Grace Hopper',
+      email: 'grace@example.test',
+      activationStatus: 'pending',
+    };
+    const administratorDetail = {
+      administratorId: '303',
+      name: 'Katherine Johnson',
+      email: 'katherine@example.test',
+      activationStatus: 'activated',
+    };
+    const teacherInput = { name: 'Grace Hopper', email: 'grace@example.test' };
+    const administratorInput = { name: 'Katherine Johnson', email: 'katherine@example.test' };
+    const changes = { contactPhone: '555-0123' };
+    vi.mocked(apiClient.post)
+      .mockResolvedValueOnce({ data: { activationEmailStatus: 'sent' } } as never)
+      .mockResolvedValueOnce({ data: { activationEmailStatus: 'failed' } } as never);
+    vi.mocked(apiClient.get)
+      .mockResolvedValueOnce({ data: teacherDetail } as never)
+      .mockResolvedValueOnce({ data: administratorDetail } as never);
+    vi.mocked(apiClient.patch)
+      .mockResolvedValueOnce({ data: teacherDetail } as never)
+      .mockResolvedValueOnce({ data: administratorDetail } as never);
+
+    await expect(createTeacherAccount(teacherInput)).resolves.toEqual({
+      activationEmailStatus: 'sent',
+    });
+    await expect(createAdministratorAccount(administratorInput)).resolves.toEqual({
+      activationEmailStatus: 'failed',
+    });
+    await expect(getTeacherAccount('202/unsafe')).resolves.toEqual(teacherDetail);
+    await expect(getAdministratorAccount('303')).resolves.toEqual(administratorDetail);
+    await expect(updateTeacherAccount('202', changes)).resolves.toEqual(teacherDetail);
+    await expect(updateAdministratorAccount('303', changes)).resolves.toEqual(administratorDetail);
+
+    expect(apiClient.post).toHaveBeenNthCalledWith(1, '/api/v1/admin/teachers', teacherInput);
+    expect(apiClient.post).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/admin/administrators',
+      administratorInput,
+    );
+    expect(apiClient.get).toHaveBeenNthCalledWith(1, '/api/v1/admin/teachers/202%2Funsafe');
+    expect(apiClient.get).toHaveBeenNthCalledWith(2, '/api/v1/admin/administrators/303');
+    expect(apiClient.patch).toHaveBeenNthCalledWith(1, '/api/v1/admin/teachers/202', changes);
+    expect(apiClient.patch).toHaveBeenNthCalledWith(2, '/api/v1/admin/administrators/303', changes);
   });
 });

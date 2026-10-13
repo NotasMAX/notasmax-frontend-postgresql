@@ -54,14 +54,15 @@ O cliente envia cookies somente para a origem configurada em `VITE_API_BASE_URL`
 
 ## Comandos disponíveis
 
-| Comando              | Descrição                                         |
-| -------------------- | ------------------------------------------------- |
-| npm run lint         | Verifica o código com ESLint.                     |
-| npm run format       | Formata os arquivos com Prettier.                 |
-| npm run format:check | Verifica a formatação sem modificar arquivos.     |
-| npm run typecheck    | Verifica os tipos TypeScript.                     |
-| npm run test         | Executa testes unitários Vitest em ambiente Node. |
-| npm run build        | Verifica os tipos e gera o build de produção.     |
+| Comando                                             | Descrição                                                      |
+| --------------------------------------------------- | -------------------------------------------------------------- |
+| npm run lint                                        | Verifica o código com ESLint.                                  |
+| npm run format                                      | Formata os arquivos com Prettier.                              |
+| npm run format:check                                | Verifica a formatação sem modificar arquivos.                  |
+| npm run typecheck                                   | Verifica os tipos TypeScript.                                  |
+| npm run test                                        | Executa os testes automatizados com Vitest em Node.js e jsdom. |
+| npm run test -- --coverage --coverage.reporter=text | Executa os testes e exibe a cobertura de código no terminal.   |
+| npm run build                                       | Verifica os tipos e gera o build de produção.                  |
 
 **Regra de apresentação:** para erros RFC 9457 utilizáveis, a interface deve exibir os textos seguros da API em `detail` e, para validações de campo, em `errors[].detail`, associados ao campo indicado em `errors[].source`. Se `detail` não existir, pode usar `title` quando apropriado à tela. `status` e `code` orientam o comportamento; a ausência de `code` não impede a exibição do texto seguro. Mensagens genéricas locais ficam como contingência para falhas de rede, respostas vazias ou inválidas. A API mantém respostas genéricas nos fluxos públicos de autenticação e recuperação para evitar revelar se uma conta existe; conflitos administrativos autenticados podem ser específicos. Respostas de health check são técnicas e não devem aparecer como mensagens de produto.
 

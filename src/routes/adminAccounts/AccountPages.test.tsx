@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createElement } from 'react';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -118,6 +118,19 @@ function page(
   };
 }
 
+interface Deferred<T> {
+  readonly promise: Promise<T>;
+  resolve(value: T): void;
+}
+
+function deferred<T>(): Deferred<T> {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
 function AccountRouteTree() {
   return createElement(
     Routes,
@@ -166,6 +179,68 @@ afterEach(() => {
 });
 
 describe('account management pages', () => {
+  it('keeps the newest account list when an older filter request resolves last', async () => {
+    const initialRequest = deferred<Awaited<ReturnType<typeof accountService.loadAccountPage>>>();
+    const filteredRequest = deferred<Awaited<ReturnType<typeof accountService.loadAccountPage>>>();
+    vi.mocked(accountService.loadAccountPage)
+      .mockReturnValueOnce(initialRequest.promise)
+      .mockReturnValueOnce(filteredRequest.promise);
+    renderAt('/admin/contas/administradores');
+    const user = userEvent.setup();
+
+    await waitFor(() => expect(accountService.loadAccountPage).toHaveBeenCalledTimes(1));
+    await user.type(screen.getByLabelText('Buscar por nome ou e-mail'), 'Ada');
+    await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
+    await waitFor(() => expect(accountService.loadAccountPage).toHaveBeenCalledTimes(2));
+
+    await act(async () => filteredRequest.resolve(page([student])));
+    expect(await screen.findByText('Ada Lovelace')).toBeTruthy();
+    await act(async () => initialRequest.resolve(page()));
+
+    expect(screen.getByText('Ada Lovelace')).toBeTruthy();
+    expect(screen.queryByText('Ajuste os filtros ou cadastre uma conta.')).toBeNull();
+  });
+
+  it('shows a list error and retries the failed account request', async () => {
+    vi.mocked(accountService.loadAccountPage)
+      .mockRejectedValueOnce(new Error('synthetic network failure'))
+      .mockResolvedValueOnce(page([student]));
+    renderAt('/admin/contas/administradores');
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Não foi possível concluir a solicitação.',
+    );
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Tentar novamente' }));
+    expect(await screen.findByText('Ada Lovelace')).toBeTruthy();
+  });
+
+  it('shows a detail error and retries loading the account', async () => {
+    vi.mocked(accountService.loadAccountDetail)
+      .mockRejectedValueOnce(new Error('synthetic network failure'))
+      .mockResolvedValueOnce(teacher);
+    renderAt('/admin/contas/professores/55');
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Não foi possível concluir a solicitação.',
+    );
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Tentar novamente' }));
+    expect(await screen.findByRole('heading', { name: 'Grace Hopper' })).toBeTruthy();
+  });
+
+  it('shows a safe error when activation resend fails', async () => {
+    vi.mocked(accountService.loadAccountDetail).mockResolvedValue(pendingTeacher);
+    vi.mocked(accountService.resendActivation).mockRejectedValue(
+      new Error('synthetic network failure'),
+    );
+    renderAt('/admin/contas/professores/55');
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Reenviar ativação' }));
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Não foi possível concluir a solicitação.',
+    );
+    expect(screen.getByRole('alert').textContent).not.toContain(pendingTeacher.email);
+  });
+
   it('shows student enrollment status and submits only supported student filters', async () => {
     vi.mocked(accountService.loadAccountPage)
       .mockResolvedValueOnce(page([student], 1, 20, 2, 2))
