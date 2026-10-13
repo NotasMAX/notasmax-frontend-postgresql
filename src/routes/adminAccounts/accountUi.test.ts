@@ -33,7 +33,9 @@ describe('account UI contract helpers', () => {
   });
 
   it('builds only filters supported by each profile contract', () => {
-    const classes: AdminClassOption[] = [{ classId: '42', schoolYear: 2026, series: 9 }];
+    const classes: AdminClassOption[] = [
+      { classId: '42', schoolYear: 2026, series: 9, isClosed: false },
+    ];
     expect(buildAccountFilters('student', emptyDraft, 2, classes)).toEqual({
       search: 'Ada',
       activationStatus: 'pending',
@@ -58,7 +60,7 @@ describe('account UI contract helpers', () => {
 
   it('does not send internal class IDs when an academic year and series do not match', () => {
     const filters = buildAccountFilters('student', emptyDraft, 1, [
-      { classId: '42', schoolYear: 2025, series: 9 },
+      { classId: '42', schoolYear: 2025, series: 9, isClosed: false },
     ]);
     expect(filters).not.toHaveProperty('classId');
   });

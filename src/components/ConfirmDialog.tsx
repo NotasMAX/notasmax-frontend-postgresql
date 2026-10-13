@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, type ReactNode } from 'react';
 export interface ConfirmDialogProps {
   readonly title: string;
   readonly confirmLabel: string;
+  readonly description?: string;
   readonly pendingLabel?: string;
   readonly pending?: boolean;
   readonly errorMessage?: string | null;
@@ -10,12 +11,13 @@ export interface ConfirmDialogProps {
   readonly confirmTone?: 'primary' | 'danger';
   readonly onCancel: () => void;
   readonly onConfirm: () => void;
-  readonly children: ReactNode;
+  readonly children?: ReactNode;
 }
 
 export function ConfirmDialog({
   title,
   confirmLabel,
+  description,
   pendingLabel = 'Processando…',
   pending = false,
   errorMessage,
@@ -30,6 +32,8 @@ export function ConfirmDialog({
     typeof document === 'undefined' ? null : (document.activeElement as HTMLElement),
   );
   const titleId = useId();
+  const descriptionId = useId();
+  const contentId = useId();
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -50,6 +54,7 @@ export function ConfirmDialog({
   return (
     <dialog
       aria-labelledby={titleId}
+      aria-describedby={description ? descriptionId : children ? contentId : undefined}
       aria-modal="true"
       className="fixed inset-0 m-auto max-h-[90vh] w-[min(42rem,calc(100%-2rem))] overflow-auto rounded-2xl border border-panel-outline bg-surface p-0 text-on-surface shadow-2xl backdrop:bg-black/50"
       onCancel={(event) => {
@@ -66,7 +71,16 @@ export function ConfirmDialog({
         <h2 className="text-title-large font-semibold" id={titleId}>
           {title}
         </h2>
-        <div className="space-y-3 text-body-medium">{children}</div>
+        {description && (
+          <p className="text-body-medium leading-6 text-muted" id={descriptionId}>
+            {description}
+          </p>
+        )}
+        {children && (
+          <div className="space-y-3 text-body-medium" id={contentId}>
+            {children}
+          </div>
+        )}
         {errorMessage && (
           <p
             aria-live="assertive"

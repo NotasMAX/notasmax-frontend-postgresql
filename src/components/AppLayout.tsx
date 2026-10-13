@@ -9,6 +9,9 @@ export function AppLayout() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const accountsMatch = useMatch('/admin/contas/*');
   const academicStructureMatch = useMatch('/admin/estrutura/*');
+  const simulationsHomeMatch = useMatch('/admin/simulados');
+  const simulationsClassMatch = useMatch('/admin/turmas/*');
+  const simulationsMatch = simulationsHomeMatch ?? simulationsClassMatch;
 
   if (auth.state.status !== 'authenticated') {
     return null;
@@ -146,6 +149,25 @@ export function AppLayout() {
               <path d="M4 5h13M8 8h8M8 12h8" />
             </svg>
             Estrutura acadêmica
+          </Link>
+          <Link
+            aria-current={simulationsMatch ? 'page' : undefined}
+            className={`inline-flex items-center gap-2 ${linkClass({ isActive: Boolean(simulationsMatch) })}`}
+            to="/admin/simulados"
+          >
+            <svg
+              aria-hidden="true"
+              className="size-5 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.8"
+              viewBox="0 0 24 24"
+            >
+              <path d="M4 5h16v14H4zM8 9h8M8 13h5M8 16h3" />
+            </svg>
+            Simulados
           </Link>
         </nav>
         <main className="min-w-0">
