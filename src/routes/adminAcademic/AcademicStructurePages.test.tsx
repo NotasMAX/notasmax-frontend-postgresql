@@ -85,12 +85,22 @@ describe('academic subject and class workflows', () => {
     renderAt('/admin/estrutura/materias', <AcademicSubjectListPage />);
 
     expect(await screen.findByText('Nenhuma matéria encontrada.')).toBeTruthy();
-    expect(
-      screen.getByRole('navigation', { name: 'Seções da estrutura acadêmica' }).textContent,
-    ).toContain('Turmas');
+    const sectionNavigation = screen.getByRole('navigation', {
+      name: 'Seções da estrutura acadêmica',
+    });
+    expect(sectionNavigation.textContent).toContain('Matérias');
+    expect(sectionNavigation.textContent).toContain('Turmas');
+    expect(sectionNavigation.textContent).toContain('Matrículas');
     expect(screen.getByRole('link', { name: 'Cadastrar matéria' }).getAttribute('href')).toBe(
       '/admin/estrutura/materias/nova',
     );
+    expect(screen.getByRole('button', { name: 'Buscar' }).className).toContain('bg-primary');
+    expect(
+      screen
+        .getByRole('button', { name: 'Buscar' })
+        .querySelector('svg')
+        ?.getAttribute('aria-hidden'),
+    ).toBe('true');
   });
 
   it('shows subject search results as plain text with detail and edit routes', async () => {
@@ -304,6 +314,9 @@ describe('academic subject and class workflows', () => {
     expect(
       await screen.findByText('Nenhuma turma encontrada para o ano selecionado.'),
     ).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Ano letivo atual' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Buscar' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Aplicar' })).toBeNull();
     expect(academicService.loadAcademicClasses).toHaveBeenCalledWith({ page: 1, pageSize: 20 });
   });
 

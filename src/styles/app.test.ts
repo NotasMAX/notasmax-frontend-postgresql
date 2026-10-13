@@ -108,7 +108,9 @@ describe('approved visual tokens', () => {
     ).not.toBeNull();
 
     expect(authPageLayout).toContain('auth-panel panel-surface rounded-2xl p-5 sm:p-8');
-    expect(appLayout).toContain('panel-surface flex gap-2 rounded-2xl bg-surface p-3 lg:flex-col');
+    expect(appLayout).toContain(
+      'panel-surface flex gap-2 rounded-2xl bg-surface p-3 lg:min-h-[36rem] lg:flex-col',
+    );
     expect(notFoundPage).toContain(
       'panel-surface flex w-full max-w-xl flex-col items-center gap-5 rounded-2xl bg-surface',
     );

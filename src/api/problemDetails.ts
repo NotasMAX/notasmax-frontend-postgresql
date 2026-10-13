@@ -40,7 +40,7 @@ export class ApiRequestError extends Error {
   constructor({ status, problem }: ApiRequestErrorOptions) {
     super(
       status === undefined
-        ? 'Não foi possível conectar à API. Tente novamente mais tarde.'
+        ? 'Não foi possível concluir a ação agora. Tente novamente em instantes.'
         : GENERIC_API_ERROR_MESSAGE,
     );
     this.name = 'ApiRequestError';

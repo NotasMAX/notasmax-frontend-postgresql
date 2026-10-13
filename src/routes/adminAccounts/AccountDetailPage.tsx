@@ -120,7 +120,7 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
   return (
     <AccountPageShell
       profile={profile}
-      description="Consulte os dados cadastrais e os estados retornados pela API."
+      description="Consulte os dados e a situação desta conta."
       actions={
         <>
           <Link
@@ -145,7 +145,7 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
           {account && isStudentDetail(account) && (
             <Link
               className="account-button-primary inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary"
-              to="/admin/matriculas/nova"
+              to="/admin/estrutura/matriculas/nova"
             >
               Nova matrícula
             </Link>

@@ -1,0 +1,116 @@
+// @vitest-environment jsdom
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as lifecycle from '../../academic/academicLifecycleService';
+import * as structure from '../../academic/academicStructureService';
+import { ClassTeacherManagementPage } from './ClassTeacherManagementPage';
+
+vi.mock('../../academic/academicStructureService', () => ({ loadAcademicClass: vi.fn() }));
+vi.mock('../../academic/academicLifecycleService', () => ({
+  addAcademicTeacher: vi.fn(),
+  loadAcademicOfferPage: vi.fn(),
+  loadAcademicTeacherCandidates: vi.fn(),
+  loadAcademicTeacherPage: vi.fn(),
+  removeAcademicTeacher: vi.fn(),
+}));
+
+const route = '/admin/estrutura/turmas/:classId/materias/:subjectId/professores';
+
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={['/admin/estrutura/turmas/44/materias/7/professores']}>
+      <Routes>
+        <Route element={<ClassTeacherManagementPage />} path={route} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  vi.mocked(structure.loadAcademicClass).mockResolvedValue({
+    schoolClass: { classId: '44', series: 1, schoolYear: 2026, startDate: '2026-10-13' },
+    etag: '"class-v1"',
+  });
+  vi.mocked(lifecycle.loadAcademicOfferPage).mockResolvedValue({
+    items: [{ subjectId: '7', name: 'Matemática', description: null }],
+    etag: '"offers-v1"',
+  });
+  vi.mocked(lifecycle.loadAcademicTeacherPage).mockResolvedValue({
+    items: [
+      {
+        teacherId: '9',
+        name: 'Professora associada',
+        email: 'associated@example.test',
+        activationStatus: 'activated',
+      },
+    ],
+    etag: '"teachers-v1"',
+  });
+  vi.mocked(lifecycle.loadAcademicTeacherCandidates).mockResolvedValue({
+    items: [
+      {
+        teacherId: '10',
+        name: 'Professor disponível',
+        email: 'candidate@example.test',
+        activationStatus: 'activated',
+      },
+    ],
+    pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
+  });
+});
+
+afterEach(() => cleanup());
+
+describe('dedicated class teacher-management page', () => {
+  it('shows class and subject context and returns to the class detail', async () => {
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Gerenciar professores' })).toBeTruthy();
+    const associatedSection = screen
+      .getByRole('heading', { name: 'Professores associados' })
+      .closest('section');
+    expect(within(associatedSection as HTMLElement).getByText(/Matemática/)).toBeTruthy();
+    expect(screen.getByText('Professora associada')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Voltar à turma' }).getAttribute('href')).toBe(
+      '/admin/estrutura/turmas/44',
+    );
+  });
+
+  it('searches and associates a teacher using the current collection ETag', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('Professora associada');
+    await user.type(
+      screen.getByRole('textbox', { name: 'Buscar professor por nome ou e-mail' }),
+      'disponível',
+    );
+    await user.click(screen.getByRole('button', { name: 'Buscar professores' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Professor disponível' }), '10');
+    await user.click(screen.getByRole('button', { name: 'Associar professor' }));
+
+    await waitFor(() => expect(lifecycle.addAcademicTeacher).toHaveBeenCalledOnce());
+    expect(lifecycle.addAcademicTeacher).toHaveBeenCalledWith('44', '7', '10', '"teachers-v1"');
+    expect(lifecycle.loadAcademicTeacherCandidates).toHaveBeenCalledWith({
+      search: 'disponível',
+      page: 1,
+      pageSize: 20,
+    });
+  });
+
+  it('requires confirmation before removing an associated teacher', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('Professora associada');
+    await user.click(screen.getByRole('button', { name: 'Remover professor' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(lifecycle.removeAcademicTeacher).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Remover professor' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar remoção' }));
+    await waitFor(() => expect(lifecycle.removeAcademicTeacher).toHaveBeenCalledOnce());
+    expect(lifecycle.removeAcademicTeacher).toHaveBeenCalledWith('44', '7', '9', '"teachers-v1"');
+  });
+});

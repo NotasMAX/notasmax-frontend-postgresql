@@ -174,7 +174,9 @@ describe('toApiRequestError', () => {
     expect(error.status).toBeUndefined();
     expect(error.problem).toBeUndefined();
     expect(getApiProblemPresentation(error)).toEqual({ message: undefined, fieldErrors: [] });
-    expect(error.message).toBe('Não foi possível conectar à API. Tente novamente mais tarde.');
+    expect(error.message).toBe(
+      'Não foi possível concluir a ação agora. Tente novamente em instantes.',
+    );
   });
 
   it.each([

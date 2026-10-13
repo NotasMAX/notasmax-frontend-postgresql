@@ -7,6 +7,7 @@ export interface ConfirmDialogProps {
   readonly pending?: boolean;
   readonly errorMessage?: string | null;
   readonly confirmDisabled?: boolean;
+  readonly confirmTone?: 'primary' | 'danger';
   readonly onCancel: () => void;
   readonly onConfirm: () => void;
   readonly children: ReactNode;
@@ -19,6 +20,7 @@ export function ConfirmDialog({
   pending = false,
   errorMessage,
   confirmDisabled = false,
+  confirmTone = 'primary',
   onCancel,
   onConfirm,
   children,
@@ -85,7 +87,11 @@ export function ConfirmDialog({
             Cancelar
           </button>
           <button
-            className="min-h-11 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
+            className={`min-h-11 rounded-lg px-4 text-label-large font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-70 ${
+              confirmTone === 'danger'
+                ? 'bg-danger focus-visible:outline-danger'
+                : 'bg-primary focus-visible:outline-primary'
+            }`}
             disabled={pending || confirmDisabled}
             onClick={onConfirm}
             type="button"

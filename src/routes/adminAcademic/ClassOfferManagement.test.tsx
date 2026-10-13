@@ -2,6 +2,7 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router';
 import * as lifecycle from '../../academic/academicLifecycleService';
 import { ClassOfferManagement } from './ClassOfferManagement';
 
@@ -40,8 +41,20 @@ afterEach(() => cleanup());
 describe('class subject and teacher removals', () => {
   it('does not remove an offer on cancel and confirms once with the collection ETag', async () => {
     const user = userEvent.setup();
-    render(<ClassOfferManagement classId="44" />);
+    render(
+      <MemoryRouter>
+        <ClassOfferManagement classId="44" />
+      </MemoryRouter>,
+    );
     await screen.findByText('Matemática');
+    expect(
+      screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent),
+    ).toEqual(['Adicionar matéria', 'Matérias da turma']);
+    expect(screen.getByRole('heading', { name: 'Matérias da turma' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Adicionar matéria' })).toBeTruthy();
+    const addButton = screen.getByRole('button', { name: 'Adicionar matéria' });
+    expect(addButton.className).toContain('bg-primary');
+    expect(addButton.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
     await user.click(screen.getByRole('button', { name: 'Remover matéria' }));
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(lifecycle.removeAcademicOffer).not.toHaveBeenCalled();
@@ -51,18 +64,16 @@ describe('class subject and teacher removals', () => {
     expect(lifecycle.removeAcademicOffer).toHaveBeenCalledWith('44', '7', '"offers-v1"');
   });
 
-  it('does not remove a teacher on cancel and confirms once with the teacher collection ETag', async () => {
-    const user = userEvent.setup();
-    render(<ClassOfferManagement classId="44" />);
+  it('links to a dedicated teacher-management page for each subject', async () => {
+    render(
+      <MemoryRouter>
+        <ClassOfferManagement classId="44" />
+      </MemoryRouter>,
+    );
     await screen.findByText('Matemática');
-    await user.click(screen.getByRole('button', { name: 'Gerenciar professores' }));
-    await screen.findByText('Professora');
-    await user.click(screen.getByRole('button', { name: 'Remover professor' }));
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
-    expect(lifecycle.removeAcademicTeacher).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Remover professor' }));
-    await user.click(screen.getByRole('button', { name: 'Confirmar remoção' }));
-    await waitFor(() => expect(lifecycle.removeAcademicTeacher).toHaveBeenCalledOnce());
-    expect(lifecycle.removeAcademicTeacher).toHaveBeenCalledWith('44', '7', '9', '"teachers-v1"');
+    expect(screen.getByRole('link', { name: 'Gerenciar professores' }).getAttribute('href')).toBe(
+      '/admin/estrutura/turmas/44/materias/7/professores',
+    );
+    expect(screen.queryByRole('button', { name: 'Remover professor' })).toBeNull();
   });
 });

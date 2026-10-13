@@ -88,8 +88,8 @@ export function ActiveEnrollmentCancellation({
           title="Cancelar matrícula?"
         >
           <p>
-            A matrícula ativa será cancelada na data informada. A API verifica a data e a situação
-            da turma.
+            A matrícula ativa será cancelada na data informada, desde que a turma permita o
+            cancelamento.
           </p>
           <label className="mt-3 block space-y-2">
             Data efetiva do cancelamento

@@ -12,12 +12,13 @@ import {
 } from '../../academic/academicLifecycleService';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { accountErrorMessage, civilDateLabel } from '../adminAccounts/accountUi';
+import { CenteredSubmitButton } from '../../components/CenteredSubmitButton';
+import { SelectField } from '../../components/SelectField';
+import { AcademicPageLayout } from './AcademicPageLayout';
+import { primaryButtonClass, secondaryButtonClass } from './academicButtonStyles';
 
 const field =
   'min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface';
-const button =
-  'inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary disabled:opacity-70';
-
 export function EnrollmentCreatePage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
@@ -42,6 +43,8 @@ export function EnrollmentCreatePage() {
   async function searchStudents(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setStudentId('');
+    setStudents([]);
     try {
       const result = await loadAccountPage('student', {
         search: query.trim(),
@@ -117,14 +120,10 @@ export function EnrollmentCreatePage() {
   }
 
   return (
-    <section className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-headline-medium font-semibold">Nova matrícula</h1>
-        <p className="text-body-large text-muted">
-          Selecione um aluno existente, uma turma e a data civil de início. A API valida se a turma
-          aceita matrícula.
-        </p>
-      </header>
+    <AcademicPageLayout
+      description="Escolha um aluno, uma turma e a data de início para criar a matrícula."
+      title="Nova matrícula"
+    >
       {error && (
         <p
           role="alert"
@@ -136,9 +135,9 @@ export function EnrollmentCreatePage() {
       )}
       <form
         onSubmit={searchStudents}
-        className="panel-surface space-y-3 rounded-2xl bg-surface p-5"
+        className="panel-surface space-y-3 rounded-2xl bg-surface p-4"
       >
-        <label className="block space-y-2">
+        <label className="block space-y-2 text-label-large font-medium text-on-surface">
           Buscar aluno sem matrícula ativa
           <input
             className={field}
@@ -147,14 +146,11 @@ export function EnrollmentCreatePage() {
             onChange={(event) => setQuery(event.currentTarget.value)}
           />
         </label>
-        <button className={button} type="submit">
-          Buscar alunos
-        </button>
+        <CenteredSubmitButton icon="search">Buscar</CenteredSubmitButton>
         {students.length > 0 && (
           <label className="block space-y-2">
             Aluno
-            <select
-              className={field}
+            <SelectField
               required
               value={studentId}
               onChange={(event) => setStudentId(event.currentTarget.value)}
@@ -165,52 +161,50 @@ export function EnrollmentCreatePage() {
                   {student.name} · {student.email}
                 </option>
               ))}
-            </select>
+            </SelectField>
           </label>
         )}
       </form>
-      <form
-        onSubmit={(event) => void submit(event)}
-        className="panel-surface space-y-4 rounded-2xl bg-surface p-5"
-      >
-        <label className="block space-y-2">
-          Turma
-          <select
-            className={field}
-            required
-            value={classId}
-            onChange={(event) => setClassId(event.currentTarget.value)}
-          >
-            <option value="">Selecione</option>
-            {classes.map((item) => (
-              <option key={item.classId} value={item.classId}>
-                {item.series}ª série — {item.schoolYear} · {item.classId}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block space-y-2">
-          Data de início
-          <input
-            className={field}
-            required
-            type="date"
-            value={startDate}
-            onChange={(event) => setStartDate(event.currentTarget.value)}
-          />
-        </label>
-        <div className="flex gap-3">
-          <button className={button} disabled={busy || !studentId} type="submit">
-            {busy ? 'Salvando…' : 'Criar matrícula'}
-          </button>
-          <Link
-            className="inline-flex min-h-11 items-center px-4 text-primary"
-            to="/admin/contas/alunos"
-          >
-            Cancelar
-          </Link>
-        </div>
-      </form>
+      {studentId && (
+        <form
+          onSubmit={(event) => void submit(event)}
+          className="panel-surface space-y-4 rounded-2xl bg-surface p-5"
+        >
+          <label className="block space-y-2">
+            Turma
+            <SelectField
+              required
+              value={classId}
+              onChange={(event) => setClassId(event.currentTarget.value)}
+            >
+              <option value="">Selecione</option>
+              {classes.map((item) => (
+                <option key={item.classId} value={item.classId}>
+                  {item.series}ª série — {item.schoolYear} · {item.classId}
+                </option>
+              ))}
+            </SelectField>
+          </label>
+          <label className="block space-y-2">
+            Data de início
+            <input
+              className={field}
+              required
+              type="date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.currentTarget.value)}
+            />
+          </label>
+          <div className="flex gap-3">
+            <button className={primaryButtonClass} disabled={busy || !studentId} type="submit">
+              {busy ? 'Salvando…' : 'Criar matrícula'}
+            </button>
+            <Link className={secondaryButtonClass} to="/admin/contas/alunos">
+              Cancelar
+            </Link>
+          </div>
+        </form>
+      )}
       {renewal && (
         <ConfirmDialog
           confirmLabel="Confirmar renovação"
@@ -220,11 +214,10 @@ export function EnrollmentCreatePage() {
           pendingLabel="Confirmando…"
           title="Confirmar renovação de matrícula?"
         >
-          A matrícula anterior iniciada em {civilDateLabel(renewal.startDate)} será considerada. A
-          confirmação será enviada uma vez com a versão atual lida pela API; uma versão
-          desatualizada exige nova ação manual.
+          A matrícula anterior iniciada em {civilDateLabel(renewal.startDate)} será considerada. Se
+          os dados dela tiverem mudado, revise as informações e tente novamente.
         </ConfirmDialog>
       )}
-    </section>
+    </AcademicPageLayout>
   );
 }
