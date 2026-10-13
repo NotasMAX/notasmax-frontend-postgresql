@@ -8,6 +8,7 @@ export function AppLayout() {
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const accountsMatch = useMatch('/admin/contas/*');
+  const academicStructureMatch = useMatch('/admin/estrutura/*');
 
   if (auth.state.status !== 'authenticated') {
     return null;
@@ -126,6 +127,34 @@ export function AppLayout() {
             </svg>
             Contas
           </Link>
+          <Link
+            aria-current={academicStructureMatch ? 'page' : undefined}
+            className={`inline-flex items-center gap-2 ${linkClass({ isActive: Boolean(academicStructureMatch) })}`}
+            to="/admin/estrutura/materias"
+          >
+            <svg
+              aria-hidden="true"
+              className="size-5 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.8"
+              viewBox="0 0 24 24"
+            >
+              <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21V5.5Z" />
+              <path d="M4 5h13M8 8h8M8 12h8" />
+            </svg>
+            Estrutura acadêmica
+          </Link>
+          <NavLink
+            to="/admin/matriculas/nova"
+            className={({ isActive }) =>
+              `inline-flex items-center gap-2 ${linkClass({ isActive })}`
+            }
+          >
+            Matrículas
+          </NavLink>
         </nav>
         <main className="min-w-0">
           {errorMessage && (

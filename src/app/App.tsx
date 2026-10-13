@@ -9,11 +9,20 @@ import {
 import { AppLayout } from '../components/AppLayout';
 import { AdminHomePage } from '../routes/AdminHomePage';
 import {
+  AcademicClassDetailPage,
+  AcademicClassFormPage,
+  AcademicClassListPage,
+  AcademicSubjectDetailPage,
+  AcademicSubjectFormPage,
+  AcademicSubjectListPage,
+} from '../routes/adminAcademic/AcademicStructurePages';
+import {
   AdminAccountDetailRoute,
   AdminAccountFormRoute,
   AdminAccountListRoute,
 } from '../routes/adminAccounts/AccountRoutes';
 import { LoginPage } from '../routes/LoginPage';
+import { EnrollmentCreatePage } from '../routes/adminAcademic/EnrollmentCreatePage';
 import { NotFoundPage } from '../routes/NotFoundPage';
 import { PasswordActionPage } from '../routes/PasswordActionPage';
 import { PasswordResetRequestPage } from '../routes/PasswordResetRequestPage';
@@ -147,6 +156,28 @@ export function AppRoutes({ sensitiveLink, setSensitiveLink }: AppRoutesProps) {
       <Route element={<RequireAdministrator />}>
         <Route element={<AppLayout />}>
           <Route path="admin" element={<AdminHomePage />} />
+          <Route
+            path="admin/estrutura"
+            element={<Navigate to="/admin/estrutura/materias" replace />}
+          />
+          <Route path="admin/estrutura/materias" element={<AcademicSubjectListPage />} />
+          <Route path="admin/estrutura/materias/nova" element={<AcademicSubjectFormPage />} />
+          <Route
+            path="admin/estrutura/materias/:subjectId/editar"
+            element={<AcademicSubjectFormPage />}
+          />
+          <Route
+            path="admin/estrutura/materias/:subjectId"
+            element={<AcademicSubjectDetailPage />}
+          />
+          <Route path="admin/estrutura/turmas" element={<AcademicClassListPage />} />
+          <Route path="admin/estrutura/turmas/nova" element={<AcademicClassFormPage />} />
+          <Route
+            path="admin/estrutura/turmas/:classId/editar"
+            element={<AcademicClassFormPage />}
+          />
+          <Route path="admin/estrutura/turmas/:classId" element={<AcademicClassDetailPage />} />
+          <Route path="admin/matriculas/nova" element={<EnrollmentCreatePage />} />
           <Route path="admin/contas" element={<Navigate to="/admin/contas/alunos" replace />} />
           <Route path="admin/contas/:profile" element={<AdminAccountListRoute />} />
           <Route path="admin/contas/:profile/novo" element={<AdminAccountFormRoute />} />
