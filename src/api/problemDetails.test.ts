@@ -98,6 +98,40 @@ describe('toApiRequestError', () => {
     );
   });
 
+  it('retains the validated enrollment identifier required by the approved renewal conflict', () => {
+    const error = toApiRequestError(
+      makeAxiosError(
+        makeProblem(
+          {
+            status: 409,
+            code: 'PREVIOUS_YEAR_ENROLLMENT_CONFIRMATION_REQUIRED',
+            previousEnrollmentId: '9001',
+            detail:
+              'Confirme o encerramento da matrícula do ano letivo anterior antes de renová-la.',
+          },
+          409,
+        ),
+        409,
+      ),
+    );
+
+    expect(error.problem?.previousEnrollmentId).toBe('9001');
+    expect(getApiProblemPresentation(error).message).toBe(
+      'Confirme o encerramento da matrícula do ano letivo anterior antes de renová-la.',
+    );
+  });
+
+  it('does not retain an invalid enrollment identifier from a problem extension', () => {
+    const error = toApiRequestError(
+      makeAxiosError(
+        makeProblem({ status: 409, previousEnrollmentId: '9001?private=value' }, 409),
+        409,
+      ),
+    );
+
+    expect(error.problem?.previousEnrollmentId).toBeUndefined();
+  });
+
   it('does not present a valid RFC response from the health endpoint as a product error', () => {
     const healthProblem = {
       type: 'about:blank',

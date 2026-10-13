@@ -10,6 +10,7 @@ import {
 import { AccountPageShell } from './AccountPageShell';
 import { Badge } from '../../components/Badge';
 import { Toast, type ToastTone } from '../../components/Toast';
+import { ActiveEnrollmentCancellation } from '../adminAcademic/ActiveEnrollmentCancellation';
 import {
   accountCollectionPath,
   accountErrorMessage,
@@ -141,6 +142,14 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
               Editar conta
             </Link>
           )}
+          {account && isStudentDetail(account) && (
+            <Link
+              className="account-button-primary inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary"
+              to="/admin/matriculas/nova"
+            >
+              Nova matrícula
+            </Link>
+          )}
         </>
       }
     >
@@ -240,6 +249,12 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
                     <dd className="text-body-large text-on-surface">
                       {enrollmentStatusLabel(account.enrollmentStatus)}
                     </dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <ActiveEnrollmentCancellation
+                      onCompleted={() => void refresh()}
+                      student={account}
+                    />
                   </div>
                   <div>
                     <dt className="text-label-medium font-semibold text-muted">
