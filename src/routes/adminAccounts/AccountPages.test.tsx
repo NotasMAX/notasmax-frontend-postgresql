@@ -164,8 +164,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(academicCatalog.loadAccountFilterOptions).mockResolvedValue({
     classes: [
-      { classId: '44', series: 9, schoolYear: 2026 },
-      { classId: '45', series: 8, schoolYear: 2026 },
+      { classId: '44', series: 9, schoolYear: 2026, isClosed: false },
+      { classId: '45', series: 8, schoolYear: 2026, isClosed: false },
     ],
     subjects: [
       { subjectId: '7', name: 'Matemática', description: null },

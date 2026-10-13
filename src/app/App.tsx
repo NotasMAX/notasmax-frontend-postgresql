@@ -8,6 +8,10 @@ import {
 } from '../auth/sensitiveLink';
 import { AppLayout } from '../components/AppLayout';
 import { AdminHomePage } from '../routes/AdminHomePage';
+import { SimulationClassPage } from '../routes/adminSimulations/SimulationClassPage';
+import { SimulationDetailPage } from '../routes/adminSimulations/SimulationDetailPage';
+import { SimulationFormPage } from '../routes/adminSimulations/SimulationFormPage';
+import { SimulationListPage } from '../routes/adminSimulations/SimulationListPage';
 import {
   AdminAccountDetailRoute,
   AdminAccountFormRoute,
@@ -147,6 +151,17 @@ export function AppRoutes({ sensitiveLink, setSensitiveLink }: AppRoutesProps) {
       <Route element={<RequireAdministrator />}>
         <Route element={<AppLayout />}>
           <Route path="admin" element={<AdminHomePage />} />
+          <Route path="admin/simulados" element={<SimulationClassPage />} />
+          <Route path="admin/turmas/:classId/simulados" element={<SimulationListPage />} />
+          <Route path="admin/turmas/:classId/simulados/novo" element={<SimulationFormPage />} />
+          <Route
+            path="admin/turmas/:classId/simulados/:simulationId/editar"
+            element={<SimulationFormPage />}
+          />
+          <Route
+            path="admin/turmas/:classId/simulados/:simulationId"
+            element={<SimulationDetailPage />}
+          />
           <Route path="admin/contas" element={<Navigate to="/admin/contas/alunos" replace />} />
           <Route path="admin/contas/:profile" element={<AdminAccountListRoute />} />
           <Route path="admin/contas/:profile/novo" element={<AdminAccountFormRoute />} />

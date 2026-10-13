@@ -56,7 +56,9 @@ describe('protected /admin home', () => {
     expect(markup).toContain('Olá, Ada Lovelace 👋');
     expect(markup).toContain('Seja bem-vindo(a) de volta!');
     expect(markup).toContain('Sair');
-    expect(markup).not.toMatch(/>\s*(Turmas|Simulados|Matérias|Professores|Alunos)\s*</);
+    expect(markup).toContain('href="/admin/simulados"');
+    expect(markup).toContain('>Simulados</a>');
+    expect(markup).not.toMatch(/>\s*(Turmas|Matérias|Professores|Alunos)\s*</);
     expect(markup).not.toContain('Sessão administrativa');
     expect(markup).not.toContain('As funções administrativas aparecerão');
   });
