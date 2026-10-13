@@ -98,9 +98,14 @@ describe('approved visual tokens', () => {
     expect(shadowToken).toMatch(/0 4px 6px -1px rgb\(0 0 0 \/ 10%\)/);
     expect(shadowToken).toMatch(/0 2px 4px -2px rgb\(0 0 0 \/ 10%\)/);
     expect(stylesheet.match(/--shadow-panel\s*:/gi)).toHaveLength(1);
-    expect(stylesheet.match(/var\(--shadow-panel\)/g)).toHaveLength(1);
     expect(panelSurfaceRule).toMatch(/border:\s*1px solid var\(--color-panel-outline\)/);
     expect(panelSurfaceRule).toMatch(/box-shadow:\s*var\(--shadow-panel\)/);
+    expect(
+      stylesheet.match(/\.account-button-primary\s*\{[^}]*box-shadow:\s*var\(--shadow-panel\)/s),
+    ).not.toBeNull();
+    expect(
+      stylesheet.match(/\.account-button-secondary\s*\{[^}]*box-shadow:\s*var\(--shadow-panel\)/s),
+    ).not.toBeNull();
 
     expect(authPageLayout).toContain('auth-panel panel-surface rounded-2xl p-5 sm:p-8');
     expect(appLayout).toContain('panel-surface flex gap-2 rounded-2xl bg-surface p-3 lg:flex-col');
@@ -115,8 +120,8 @@ describe('approved visual tokens', () => {
       'border border-outline bg-surface px-3 text-body-large text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
     );
     expect(loginPage).not.toContain('panel-surface');
-    expect(appLayout).toContain(
-      'className="min-h-11 rounded-lg border border-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2',
+    expect(appLayout).toMatch(
+      /className="account-button-secondary[^"]*border border-panel-outline[^"]*bg-surface[^"]*"/,
     );
     expect(appLayout).toContain('className="mb-6 rounded-lg border border-danger bg-error-surface');
     expect(appLayout).not.toMatch(/<(?:button|p)[^>]*panel-surface/s);

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { Fragment, createElement, useState } from 'react';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AxiosError } from 'axios';
 import { MemoryRouter, useLocation } from 'react-router';
@@ -14,7 +14,7 @@ import {
   toApiRequestError,
 } from '../api/problemDetails';
 import { App, AppRoutes } from '../app/App';
-import { AuthProvider } from './AuthContext';
+import { AuthProvider, useAuth } from './AuthContext';
 import { captureSensitiveLinkToken, type SensitiveLinkToken } from './sensitiveLink';
 
 vi.mock('../api/auth', async (importOriginal) => {
@@ -120,6 +120,18 @@ function CurrentPath() {
   );
 }
 
+function SessionLookupHarness() {
+  const { state, retrySessionLookup } = useAuth();
+  const label = state.status === 'authenticated' ? state.user.displayName : state.status;
+
+  return createElement(
+    Fragment,
+    null,
+    createElement('output', null, label),
+    createElement('button', { onClick: () => void retrySessionLookup() }, 'Revalidar sessão'),
+  );
+}
+
 function MemoryApplication({
   initialEntry,
   initialSensitiveLink = null,
@@ -171,6 +183,36 @@ afterEach(() => {
 });
 
 describe('mounted authentication flows', () => {
+  it('ignores older session lookups that resolve after the newest request', async () => {
+    const initialLookup = deferred<AuthenticatedUser>();
+    const olderRetry = deferred<AuthenticatedUser>();
+    const newestRetry = deferred<AuthenticatedUser>();
+    vi.mocked(authApi.getCurrentSession)
+      .mockReturnValueOnce(initialLookup.promise)
+      .mockReturnValueOnce(olderRetry.promise)
+      .mockReturnValueOnce(newestRetry.promise);
+    render(createElement(AuthProvider, null, createElement(SessionLookupHarness)));
+    const user = userEvent.setup();
+
+    await waitFor(() => expect(authApi.getCurrentSession).toHaveBeenCalledTimes(1));
+    const retry = screen.getByRole('button', { name: 'Revalidar sessão' });
+    await user.click(retry);
+    await user.click(retry);
+    await waitFor(() => expect(authApi.getCurrentSession).toHaveBeenCalledTimes(3));
+
+    await act(async () => newestRetry.resolve({ ...administrator, displayName: 'Sessão atual' }));
+    expect(await screen.findByText('Sessão atual')).toBeTruthy();
+
+    await act(async () => olderRetry.resolve({ ...administrator, displayName: 'Sessão antiga' }));
+    await act(async () =>
+      initialLookup.resolve({ ...administrator, displayName: 'Sessão inicial' }),
+    );
+
+    expect(screen.getByText('Sessão atual')).toBeTruthy();
+    expect(screen.queryByText('Sessão antiga')).toBeNull();
+    expect(screen.queryByText('Sessão inicial')).toBeNull();
+  });
+
   it('shows an unavailable session lookup, retries it, and then renders /admin', async () => {
     vi.mocked(authApi.getCurrentSession)
       .mockRejectedValueOnce(new Error('local synthetic network failure'))

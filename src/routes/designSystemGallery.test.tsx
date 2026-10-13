@@ -123,12 +123,16 @@ describe('development design-system route', () => {
     renderRoute('/docs/design-system');
 
     const colors = screen.getByRole('region', { name: 'Papéis de cor' });
-    const colorCards = expectSampleCards(colors, 11);
+    const colorCards = expectSampleCards(colors, 15);
     expect(colorCards.map((card) => card.querySelector('code')?.textContent)).toEqual([
       '--color-primary',
       '--color-primary-hover',
       '--color-on-primary',
       '--color-highlight',
+      '--color-success',
+      '--color-success-surface',
+      '--color-warning',
+      '--color-warning-surface',
       '--color-surface',
       '--color-surface-container',
       '--color-on-surface',
