@@ -334,13 +334,13 @@ describe('mounted authentication flows', () => {
       normalizedApiError(
         {
           type: 'about:blank',
-          title: 'Conteúdo não processável',
+          title: 'Dados inválidos',
           status: 422,
-          detail: 'O conteúdo enviado não atende aos critérios de validação.',
+          detail: 'Confira as informações e corrija os campos indicados.',
           errors: [
             {
               code: 'INVALID_FORMAT',
-              detail: 'O formato informado é inválido.',
+              detail: 'Use o formato indicado.',
               source: { in: 'body', pointer: '/email' },
             },
           ],
@@ -355,11 +355,11 @@ describe('mounted authentication flows', () => {
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
 
     const emailInput = screen.getByLabelText('E-mail institucional');
-    expect(await screen.findByText('O formato informado é inválido.')).toBeTruthy();
+    expect(await screen.findByText('Use o formato indicado.')).toBeTruthy();
     expect(emailInput.getAttribute('aria-invalid')).toBe('true');
     expect(emailInput.getAttribute('aria-describedby')).toBe('login-email-error-0');
     expect(document.getElementById('login-email-error-0')?.textContent).toBe(
-      'O formato informado é inválido.',
+      'Use o formato indicado.',
     );
     expect(currentPath()).toBe('/');
     expect(screen.queryByRole('navigation', { name: 'Navegação administrativa' })).toBeNull();
@@ -370,13 +370,13 @@ describe('mounted authentication flows', () => {
       normalizedApiError(
         {
           type: 'about:blank',
-          title: 'Conteúdo não processável',
+          title: 'Dados inválidos',
           status: 422,
-          detail: 'O conteúdo enviado não atende aos critérios de validação.',
+          detail: 'Confira as informações e corrija os campos indicados.',
           errors: [
             {
               code: 'INVALID_VALUE',
-              detail: 'O parâmetro informado é inválido.',
+              detail: 'Confira o valor informado.',
               source: { in: 'body', pointer: "/email'][aria-invalid='true" },
             },
           ],
@@ -392,7 +392,7 @@ describe('mounted authentication flows', () => {
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
 
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('O parâmetro informado é inválido.');
+    expect(alert.textContent).toContain('Confira o valor informado.');
     expect(emailInput.getAttribute('aria-invalid')).not.toBe('true');
     expect(emailInput.getAttribute('aria-describedby')).toBeNull();
   });
@@ -487,7 +487,8 @@ describe('mounted authentication flows', () => {
   });
 
   it('shows a safe problem detail without requiring a code, including the API 413 case', async () => {
-    const apiDetail = 'O corpo da requisição excede o tamanho máximo permitido.';
+    const apiDetail =
+      'Os dados enviados são muito grandes. Revise as informações e tente novamente.';
     vi.mocked(authApi.requestPasswordReset).mockRejectedValue(apiError(413, undefined, apiDetail));
     renderMemoryApplication('/recuperar-senha');
     const user = userEvent.setup();
@@ -737,7 +738,7 @@ describe('mounted authentication flows', () => {
         normalizedApiError(
           {
             type: 'about:blank',
-            title: 'Conteúdo não processável',
+            title: 'Dados inválidos',
             status: 422,
             detail: apiDetail,
             errors: [

@@ -30,8 +30,7 @@ interface ApiRequestErrorOptions {
   readonly problem?: ApiProblemDetails;
 }
 
-export const GENERIC_API_ERROR_MESSAGE =
-  'Não foi possível concluir a solicitação. Tente novamente mais tarde.';
+export const GENERIC_API_ERROR_MESSAGE = 'Não foi possível concluir esta ação. Tente novamente.';
 
 export class ApiRequestError extends Error {
   readonly status: number | undefined;

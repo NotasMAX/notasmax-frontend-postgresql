@@ -75,22 +75,22 @@ describe('account UI contract helpers', () => {
       status: 422,
       problem: {
         status: 422,
-        title: 'Conteúdo inválido',
-        detail: 'Verifique os campos informados.',
+        title: 'Dados inválidos',
+        detail: 'Confira as informações e corrija os campos indicados.',
         errors: [
           {
             code: 'INVALID_FORMAT',
-            detail: 'O e-mail informado é inválido.',
+            detail: 'Use o formato indicado.',
             source: { in: 'body', pointer: '/email' },
           },
           {
             code: 'INVALID_VALUE',
-            detail: 'O parâmetro informado é inválido.',
+            detail: 'Escolha um valor válido.',
             source: { in: 'body', pointer: "/email'][aria-invalid='true" },
           },
           {
             code: 'INVALID_VALUE',
-            detail: 'O valor informado não pode ser usado.',
+            detail: 'Escolha um valor válido.',
             source: { in: 'body', pointer: '/currentPassword' },
           },
         ],
@@ -98,12 +98,12 @@ describe('account UI contract helpers', () => {
     });
     const result = getAccountFormErrors(error, ['email']);
 
-    expect(result.fields.email).toEqual(['O e-mail informado é inválido.']);
+    expect(result.fields.email).toEqual(['Use o formato indicado.']);
     expect(result.fields.currentPassword).toEqual([]);
     expect(result.messages).toEqual([
-      'Verifique os campos informados.',
-      'O parâmetro informado é inválido.',
-      'O valor informado não pode ser usado.',
+      'Confira as informações e corrija os campos indicados.',
+      'Escolha um valor válido.',
+      'Escolha um valor válido.',
     ]);
     expect(JSON.stringify(result)).not.toContain('ada@example.test');
     expect(JSON.stringify(result)).not.toContain('synthetic-password');

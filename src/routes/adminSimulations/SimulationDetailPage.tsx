@@ -96,9 +96,7 @@ export function SimulationDetailPage() {
         const result = await realizeSimulation(classId, simulationId, etag);
         setSimulation(result.simulation);
         setEtag(result.etag);
-        setFeedback(
-          'Realização confirmada. O simulado e os participantes elegíveis foram congelados pela API.',
-        );
+        setFeedback('Simulado realizado. Ele não poderá mais ser alterado.');
       } else {
         await deleteSimulation(classId, simulationId, etag);
         navigate(`/admin/turmas/${encodeURIComponent(classId)}/simulados`, {
@@ -306,7 +304,7 @@ export function SimulationDetailPage() {
       {confirmation === 'realize' && simulation && (
         <ConfirmDialog
           confirmLabel="Confirmar realização"
-          description={`A confirmação congela o simulado nº ${simulation.number} e os alunos elegíveis conforme a API. Esta ação não pode ser desfeita.`}
+          description={`Ao confirmar, o simulado nº ${simulation.number} não poderá mais ser alterado e somente os alunos aptos poderão realizá-lo. Esta ação não pode ser desfeita.`}
           onCancel={() => setConfirmation(null)}
           onConfirm={() => void confirmAction()}
           pending={pending}
@@ -316,7 +314,7 @@ export function SimulationDetailPage() {
       {confirmation === 'delete' && simulation && (
         <ConfirmDialog
           confirmLabel="Excluir simulado"
-          description={`O simulado nº ${simulation.number} será excluído logicamente. A API recusará a operação se houver realização ou resultados vinculados.`}
+          description={`O simulado nº ${simulation.number} será removido. Não será possível removê-lo se já tiver sido realizado ou tiver resultados registrados.`}
           onCancel={() => setConfirmation(null)}
           onConfirm={() => void confirmAction()}
           pending={pending}

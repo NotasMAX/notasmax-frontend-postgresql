@@ -390,7 +390,7 @@ describe('NM-33 simulation screens', () => {
     await waitFor(() => expect(realizeSimulation).toHaveBeenCalledOnce());
     expect(realizeSimulation).toHaveBeenCalledWith('44', '12', etag);
     resolveMutation?.({ simulation: realizedSimulation, etag: '"realized-etag"' });
-    expect(await screen.findByText(/Realização confirmada/)).not.toBeNull();
+    expect(await screen.findByText(/Simulado realizado/)).not.toBeNull();
     expect(screen.queryByRole('link', { name: 'Editar simulado' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Excluir simulado' })).toBeNull();
   });
@@ -434,7 +434,7 @@ describe('NM-33 simulation screens', () => {
         status: 412,
         problem: {
           type: 'about:blank',
-          title: 'Pré-condição não atendida',
+          title: 'Os dados foram alterados',
           status: 412,
           detail: 'O simulado foi alterado por outra pessoa. Atualize e tente novamente.',
           code: 'ETAG_MISMATCH',
@@ -481,7 +481,7 @@ describe('NM-33 simulation screens', () => {
         status: 412,
         problem: {
           type: 'about:blank',
-          title: 'Pré-condição não atendida',
+          title: 'Os dados foram alterados',
           status: 412,
           detail: 'O simulado foi alterado por outra pessoa. Atualize e tente novamente.',
           code: 'ETAG_MISMATCH',

@@ -14,9 +14,9 @@ function makeProblem(
 ): Record<string, unknown> {
   return {
     type: 'about:blank',
-    title: 'Conteúdo não processável',
+    title: 'Dados inválidos',
     status,
-    detail: 'O conteúdo enviado não atende aos critérios de validação.',
+    detail: 'Confira as informações e corrija os campos indicados.',
     ...overrides,
   };
 }
@@ -48,7 +48,7 @@ describe('toApiRequestError', () => {
           errors: [
             {
               code: 'INVALID_FORMAT',
-              detail: 'O formato informado é inválido.',
+              detail: 'Use o formato indicado.',
               source: { in: 'body', pointer: '/email' },
             },
           ],
@@ -61,14 +61,14 @@ describe('toApiRequestError', () => {
     expect(error.status).toBe(422);
     expect(error.problem).toMatchObject({
       type: 'about:blank',
-      title: 'Conteúdo não processável',
+      title: 'Dados inválidos',
       status: 422,
       code: 'VALIDATION_ERROR',
-      detail: 'O conteúdo enviado não atende aos critérios de validação.',
+      detail: 'Confira as informações e corrija os campos indicados.',
       errors: [
         {
           code: 'INVALID_FORMAT',
-          detail: 'O formato informado é inválido.',
+          detail: 'Use o formato indicado.',
           source: { in: 'body', pointer: '/email' },
         },
       ],
@@ -84,7 +84,7 @@ describe('toApiRequestError', () => {
         makeProblem(
           {
             title: 'Conteúdo muito grande',
-            detail: 'O corpo da requisição excede o tamanho máximo permitido.',
+            detail: 'Os dados enviados são muito grandes. Revise as informações e tente novamente.',
           },
           413,
         ),
@@ -94,7 +94,7 @@ describe('toApiRequestError', () => {
 
     expect(error.problem?.code).toBeUndefined();
     expect(getApiProblemPresentation(error).message).toBe(
-      'O corpo da requisição excede o tamanho máximo permitido.',
+      'Os dados enviados são muito grandes. Revise as informações e tente novamente.',
     );
   });
 
@@ -150,11 +150,11 @@ describe('toApiRequestError', () => {
   });
 
   it('uses a validated title when a valid problem has no detail', () => {
-    const titleOnly = makeProblem({ title: 'Requisição inválida' });
+    const titleOnly = makeProblem({ title: 'Dados inválidos' });
     delete titleOnly.detail;
     const error = toApiRequestError(makeAxiosError(titleOnly));
 
-    expect(getApiProblemPresentation(error).message).toBe('Requisição inválida');
+    expect(getApiProblemPresentation(error).message).toBe('Dados inválidos');
   });
 
   it('accepts the problem media type with parameters and keeps generic exception copy', () => {
@@ -163,7 +163,7 @@ describe('toApiRequestError', () => {
     );
 
     expect(getApiProblemPresentation(error).message).toBe(
-      'O conteúdo enviado não atende aos critérios de validação.',
+      'Confira as informações e corrija os campos indicados.',
     );
     expect(error.message).toBe(GENERIC_API_ERROR_MESSAGE);
   });
@@ -258,7 +258,7 @@ describe('toApiRequestError', () => {
     );
 
     expect(getApiProblemPresentation(markupError).message).toBe(markup);
-    expect(getApiProblemPresentation(tokenError).message).toBe('Conteúdo não processável');
+    expect(getApiProblemPresentation(tokenError).message).toBe('Dados inválidos');
   });
 
   it('presents API detail and field messages even when they repeat submitted values', () => {
@@ -290,7 +290,7 @@ describe('toApiRequestError', () => {
     expect(
       getApiProblemPresentation(error, ['local-only-password', 'synthetic-reset-token']),
     ).toEqual({
-      message: 'Conteúdo não processável',
+      message: 'Dados inválidos',
       fieldErrors: [],
     });
   });

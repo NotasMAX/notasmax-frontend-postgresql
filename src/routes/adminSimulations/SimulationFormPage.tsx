@@ -251,7 +251,7 @@ export function SimulationFormPage() {
       )}
       {apiFieldErrors.length > 0 && (
         <ul
-          aria-label="Erros de validação da API"
+          aria-label="Erros de validação"
           className="space-y-1 rounded-lg border border-danger bg-error-surface p-4 text-body-medium text-danger"
           role="alert"
         >
@@ -402,7 +402,7 @@ export function SimulationFormPage() {
                     Matérias e pesos
                   </h2>
                   <p className="mt-1 text-body-small text-muted">
-                    Os saldos são estimativas; a API valida a alocação no momento do salvamento.
+                    Os saldos são estimativas. A distribuição será conferida ao salvar.
                   </p>
                 </div>
                 <button

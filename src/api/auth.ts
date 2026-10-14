@@ -29,12 +29,12 @@ export function isAuthenticatedUser(value: unknown): value is AuthenticatedUser 
 
 function userFromResponse(value: unknown): AuthenticatedUser {
   if (typeof value !== 'object' || value === null || !('user' in value)) {
-    throw new Error('A API retornou uma resposta de sessão inválida.');
+    throw new Error('Não foi possível confirmar sua sessão. Tente novamente.');
   }
 
   const user = value.user;
   if (!isAuthenticatedUser(user)) {
-    throw new Error('A API retornou uma resposta de sessão inválida.');
+    throw new Error('Não foi possível confirmar sua sessão. Tente novamente.');
   }
 
   return user;

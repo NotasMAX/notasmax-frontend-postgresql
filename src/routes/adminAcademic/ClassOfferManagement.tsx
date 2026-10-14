@@ -195,9 +195,9 @@ export function ClassOfferManagement({ classId }: { readonly classId: string }) 
           title="Remover matéria da turma?"
         >
           <p>
-            A matéria {pendingRemoval.name} e seus vínculos atuais com professores serão removidos
-            desta turma. Não é possível removê-la se ela já tiver sido usada em simulados ou houver
-            resultados relacionados.
+            A matéria {pendingRemoval.name} e os professores associados a ela serão removidos desta
+            turma. Não é possível removê-la se ela já tiver sido usada em simulados ou houver
+            resultados registrados.
           </p>
         </ConfirmDialog>
       )}

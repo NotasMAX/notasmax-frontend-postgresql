@@ -924,7 +924,7 @@ export function AcademicClassFormPage() {
           <div className="space-y-3">
             <p>
               {selectedCloseIds.length
-                ? `A criação e o encerramento de ${selectedCloseIds.length} turma(s) serão enviados em uma única operação. A API valida todas as condições e nenhuma turma será encerrada se a criação falhar.`
+                ? `A nova turma só será criada se todas as ${selectedCloseIds.length} turma(s) escolhidas puderem ser encerradas. Se algo impedir a ação, nenhuma mudança será feita.`
                 : 'A turma será criada com os dados informados.'}
             </p>
             {candidateClasses.some((candidate) => candidate.series === Number(series)) && (

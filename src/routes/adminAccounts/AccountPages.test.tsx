@@ -208,7 +208,7 @@ describe('account management pages', () => {
     renderAt('/admin/contas/administradores');
 
     expect((await screen.findByRole('alert')).textContent).toContain(
-      'Não foi possível concluir a solicitação.',
+      'Não foi possível concluir esta ação. Tente novamente.',
     );
     await userEvent.setup().click(screen.getByRole('button', { name: 'Tentar novamente' }));
     expect(await screen.findByText('Ada Lovelace')).toBeTruthy();
@@ -221,7 +221,7 @@ describe('account management pages', () => {
     renderAt('/admin/contas/professores/55');
 
     expect((await screen.findByRole('alert')).textContent).toContain(
-      'Não foi possível concluir a solicitação.',
+      'Não foi possível concluir esta ação. Tente novamente.',
     );
     await userEvent.setup().click(screen.getByRole('button', { name: 'Tentar novamente' }));
     expect(await screen.findByRole('heading', { name: 'Grace Hopper' })).toBeTruthy();
@@ -236,7 +236,7 @@ describe('account management pages', () => {
 
     await userEvent.setup().click(await screen.findByRole('button', { name: 'Reenviar ativação' }));
     expect((await screen.findByRole('alert')).textContent).toContain(
-      'Não foi possível concluir a solicitação.',
+      'Não foi possível concluir esta ação. Tente novamente.',
     );
     expect(screen.getByRole('alert').textContent).not.toContain(pendingTeacher.email);
   });
