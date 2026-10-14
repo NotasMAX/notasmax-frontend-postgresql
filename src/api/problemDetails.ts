@@ -16,6 +16,7 @@ export interface ApiProblemDetails {
   readonly status: number;
   readonly detail?: string;
   readonly code?: string;
+  readonly previousEnrollmentId?: string;
   readonly errors?: readonly ApiProblemFieldError[];
 }
 
@@ -272,12 +273,18 @@ function readProblemDetails(
   }
 
   const code = isValidProblemCode(value.code) ? value.code : undefined;
+  const previousEnrollmentId =
+    typeof value.previousEnrollmentId === 'string' &&
+    /^[1-9]\d{0,18}$/.test(value.previousEnrollmentId)
+      ? value.previousEnrollmentId
+      : undefined;
   return {
     type: value.type,
     title: isSafePublicText(value.title) ? value.title : undefined,
     status: value.status,
     detail: isSafePublicText(value.detail) ? value.detail : undefined,
     code,
+    previousEnrollmentId,
     errors,
   };
 }

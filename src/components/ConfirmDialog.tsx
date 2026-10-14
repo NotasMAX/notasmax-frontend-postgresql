@@ -1,23 +1,37 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-interface ConfirmDialogProps {
+interface ConfirmDialogCommonProps {
   readonly title: string;
-  readonly description: string;
   readonly confirmLabel: string;
+  readonly pendingLabel?: string;
   readonly pending?: boolean;
+  readonly errorMessage?: string | null;
+  readonly confirmDisabled?: boolean;
   readonly onCancel: () => void;
   readonly onConfirm: () => void;
 }
+
+type ConfirmDialogContentProps =
+  | { readonly description: string; readonly children?: never }
+  | { readonly description?: never; readonly children: ReactNode };
+
+export type ConfirmDialogProps = ConfirmDialogCommonProps & ConfirmDialogContentProps;
 
 export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  pendingLabel = 'Enviando…',
   pending = false,
+  errorMessage,
+  confirmDisabled = false,
   onCancel,
   onConfirm,
+  children,
 }: ConfirmDialogProps) {
+  const titleId = useId();
+  const descriptionId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
@@ -76,6 +90,7 @@ export function ConfirmDialog({
         }
       }
     }
+
     document.addEventListener('focusin', containFocus);
     document.addEventListener('click', blockBackgroundClick, true);
     document.addEventListener('keydown', handleKeyDown);
@@ -91,26 +106,46 @@ export function ConfirmDialog({
   }, []);
 
   return createPortal(
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" ref={overlayRef}>
+    <div
+      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/50 p-4"
+      ref={overlayRef}
+    >
       <section
-        aria-describedby="simulation-confirm-description"
-        aria-labelledby="simulation-confirm-title"
+        aria-describedby={description ? descriptionId : undefined}
+        aria-labelledby={titleId}
         aria-modal="true"
-        className="panel-surface w-full max-w-lg space-y-5 rounded-2xl bg-surface p-6 shadow-panel"
+        aria-busy={pending}
+        className="panel-surface max-h-[90vh] w-full max-w-lg space-y-5 overflow-y-auto rounded-2xl bg-surface p-6 shadow-panel"
         ref={dialogRef}
         role="alertdialog"
       >
         <div className="space-y-2">
           <h2
             className="text-title-large font-semibold text-on-surface"
-            id="simulation-confirm-title"
+            id={titleId}
           >
             {title}
           </h2>
-          <p className="text-body-medium leading-6 text-muted" id="simulation-confirm-description">
-            {description}
-          </p>
+          {description ? (
+            <p
+              className="text-body-medium leading-6 text-muted"
+              id={descriptionId}
+            >
+              {description}
+            </p>
+          ) : (
+            <div className="space-y-3 text-body-medium">{children}</div>
+          )}
         </div>
+        {errorMessage && (
+          <p
+            aria-live="assertive"
+            className="rounded-lg border border-danger bg-error-surface p-3 text-danger"
+            role="alert"
+          >
+            {errorMessage}
+          </p>
+        )}
         <div className="flex flex-wrap justify-end gap-3">
           <button
             className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-70"
@@ -123,14 +158,19 @@ export function ConfirmDialog({
           </button>
           <button
             className="account-button-primary min-h-11 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
-            disabled={pending}
+            disabled={pending || confirmDisabled}
             onClick={onConfirm}
             ref={confirmRef}
             type="button"
           >
-            {pending ? 'Enviando…' : confirmLabel}
+            {pending ? pendingLabel : confirmLabel}
           </button>
         </div>
+        {pending && (
+          <p aria-live="polite" className="text-body-small text-muted" role="status">
+            {pendingLabel}
+          </p>
+        )}
       </section>
     </div>,
     document.body,

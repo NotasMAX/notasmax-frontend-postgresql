@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createElement } from 'react';
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -342,7 +342,12 @@ describe('account management pages', () => {
     expect(screen.getByText('01/02/2026')).toBeTruthy();
     expect(screen.getByText('15/12/2025')).toBeTruthy();
     expect(screen.getByText('8ª série · ano letivo 2025')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /matrícula/i })).toBeNull();
+    expect(
+      within(screen.getByRole('region', { name: 'Histórico de matrículas' })).queryByRole('button'),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /editar matrícula|excluir matrícula/i }),
+    ).toBeNull();
     expect(screen.queryByRole('button', { name: /excluir|desativar/i })).toBeNull();
     expect(screen.getByRole('link', { name: 'Editar conta' })).toBeTruthy();
   });
