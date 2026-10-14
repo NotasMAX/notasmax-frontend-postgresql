@@ -122,17 +122,11 @@ export function ConfirmDialog({
         role="alertdialog"
       >
         <div className="space-y-2">
-          <h2
-            className="text-title-large font-semibold text-on-surface"
-            id={titleId}
-          >
+          <h2 className="text-title-large font-semibold text-on-surface" id={titleId}>
             {title}
           </h2>
           {description ? (
-            <p
-              className="text-body-medium leading-6 text-muted"
-              id={descriptionId}
-            >
+            <p className="text-body-medium leading-6 text-muted" id={descriptionId}>
               {description}
             </p>
           ) : (

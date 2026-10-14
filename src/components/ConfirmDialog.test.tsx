@@ -96,9 +96,7 @@ describe('ConfirmDialog', () => {
 
     expect(screen.getByText('A turma será encerrada.')).toBeTruthy();
     expect(screen.getByRole('textbox', { name: 'Data' })).toBeTruthy();
-    expect(screen.getByRole('alert').textContent).toBe(
-      'Não foi possível concluir o fechamento.',
-    );
+    expect(screen.getByRole('alert').textContent).toBe('Não foi possível concluir o fechamento.');
     const confirm = screen.getByRole('button', { name: 'Confirmar fechamento' });
     expect((confirm as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(confirm);

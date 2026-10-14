@@ -329,7 +329,13 @@ describe('academic subject and class workflows', () => {
     });
     vi.mocked(lifecycleService.loadAcademicSubjectChoices).mockResolvedValue([]);
     vi.mocked(academicService.loadAcademicClass).mockResolvedValueOnce({
-      schoolClass: { classId: '44', series: 2, schoolYear: 2026, startDate: '2026-02-01', isClosed: false },
+      schoolClass: {
+        classId: '44',
+        series: 2,
+        schoolYear: 2026,
+        startDate: '2026-02-01',
+        isClosed: false,
+      },
       etag: '"opaque"',
     });
 
@@ -349,7 +355,13 @@ describe('academic subject and class workflows', () => {
     });
     vi.mocked(lifecycleService.loadAcademicSubjectChoices).mockResolvedValue([]);
     vi.mocked(academicService.loadAcademicClass).mockResolvedValue({
-      schoolClass: { classId: '44', series: 2, schoolYear: 2026, startDate: '2026-02-01', isClosed: false },
+      schoolClass: {
+        classId: '44',
+        series: 2,
+        schoolYear: 2026,
+        startDate: '2026-02-01',
+        isClosed: false,
+      },
       etag: '"class-v1"',
     });
     renderAt('/admin/estrutura/turmas/44', <AcademicClassDetailPage />);

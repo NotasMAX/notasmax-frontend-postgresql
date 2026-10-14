@@ -179,7 +179,6 @@ export function accountErrorMessage(
   submittedSensitiveValues: readonly string[] = [],
 ): string {
   return (
-    getApiProblemPresentation(error, submittedSensitiveValues).message ??
-    GENERIC_API_ERROR_MESSAGE
+    getApiProblemPresentation(error, submittedSensitiveValues).message ?? GENERIC_API_ERROR_MESSAGE
   );
 }
