@@ -30,8 +30,7 @@ interface ApiRequestErrorOptions {
   readonly problem?: ApiProblemDetails;
 }
 
-export const GENERIC_API_ERROR_MESSAGE =
-  'Não foi possível concluir a solicitação. Tente novamente mais tarde.';
+export const GENERIC_API_ERROR_MESSAGE = 'Não foi possível concluir esta ação. Tente novamente.';
 
 export class ApiRequestError extends Error {
   readonly status: number | undefined;
@@ -339,6 +338,37 @@ export function getApiProblemPresentation(
   });
 
   return { message, fieldErrors };
+}
+
+export function getApiProblemPresentationForSubmittedValues(
+  error: unknown,
+  submittedSensitiveValues: readonly string[],
+): ApiProblemPresentation {
+  const presentation = getApiProblemPresentation(error);
+  const safeTitle =
+    error instanceof ApiRequestError &&
+    isSafePublicText(error.problem?.title) &&
+    !containsSubmittedValue(error.problem.title, submittedSensitiveValues)
+      ? error.problem.title
+      : GENERIC_API_ERROR_MESSAGE;
+  const sanitize = (message: string) =>
+    containsSubmittedValue(message, submittedSensitiveValues) ? safeTitle : message;
+
+  return {
+    message: presentation.message === undefined ? undefined : sanitize(presentation.message),
+    fieldErrors: presentation.fieldErrors.map((fieldError) => ({
+      ...fieldError,
+      detail: sanitize(fieldError.detail),
+    })),
+  };
+}
+
+function containsSubmittedValue(message: string, submittedValues: readonly string[]): boolean {
+  const normalizedMessage = message.toLocaleLowerCase();
+  return submittedValues.some((value) => {
+    if (value.trim().length < 3) return false;
+    return normalizedMessage.includes(value.toLocaleLowerCase());
+  });
 }
 
 export type AuthProblemField = 'email' | 'password' | 'token';

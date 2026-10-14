@@ -1,6 +1,6 @@
 export function requiredResponseEtag(headers: unknown): string {
   if (typeof headers !== 'object' || headers === null) {
-    throw new Error('A API não retornou o ETag necessário.');
+    throw new Error('Não foi possível confirmar se os dados estão atualizados.');
   }
 
   const headerBag = headers as { get?: (name: string) => unknown; etag?: unknown };
@@ -12,7 +12,7 @@ export function requiredResponseEtag(headers: unknown): string {
   }
 
   if (typeof value !== 'string' || value.length === 0) {
-    throw new Error('A API não retornou o ETag necessário.');
+    throw new Error('Não foi possível confirmar se os dados estão atualizados.');
   }
   return value;
 }

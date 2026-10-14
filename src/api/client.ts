@@ -20,7 +20,7 @@ apiClient.interceptors.request.use((config) => {
       window.location.origin,
     )
   ) {
-    return Promise.reject(new Error('A API só aceita chamadas para a origem configurada.'));
+    return Promise.reject(new Error('Não foi possível concluir esta ação. Tente novamente.'));
   }
 
   if (isMutatingMethod(config.method)) {

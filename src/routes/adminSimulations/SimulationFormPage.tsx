@@ -10,7 +10,6 @@ import {
   type OfferedSubject,
   type Simulation,
 } from '../../api/adminSimulations';
-import { GENERIC_API_ERROR_MESSAGE, getApiProblemPresentation } from '../../api/problemDetails';
 import { classLabel, civilDateLabel } from '../adminAccounts/accountUi';
 import {
   allocatedWeight,
@@ -22,14 +21,15 @@ import {
   isPastCivilDate,
   type SimulationFormDraft,
 } from '../../simulations/simulationUi';
+import {
+  simulationErrorMessage,
+  simulationErrorPresentation,
+  SIMULATION_VERSION_UNAVAILABLE_MESSAGE,
+} from './simulationErrors';
 
 interface FieldErrors {
   readonly form: string | null;
   readonly subjects: string | null;
-}
-
-function errorMessage(error: unknown, sensitiveValues: readonly string[] = []): string {
-  return getApiProblemPresentation(error, sensitiveValues).message ?? GENERIC_API_ERROR_MESSAGE;
 }
 
 export function SimulationFormPage() {
@@ -78,7 +78,7 @@ export function SimulationFormPage() {
         }
       })
       .catch((reason: unknown) => {
-        if (active) setError(errorMessage(reason));
+        if (active) setError(simulationErrorMessage(reason));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -153,7 +153,7 @@ export function SimulationFormPage() {
     event.preventDefault();
     if (submitted.current || pending || !classId) return;
     if (schoolClass?.isClosed) {
-      setError('Turmas fechadas não permitem alterar simulados.');
+      setError('Esta turma está encerrada. Não é possível alterar seus simulados.');
       return;
     }
     const subjects = asSimulationSubjects(draft.subjects);
@@ -174,7 +174,7 @@ export function SimulationFormPage() {
       return;
     }
     if (editing && etag === undefined) {
-      setError('A API não forneceu o ETag atual. Atualize a página antes de editar.');
+      setError(SIMULATION_VERSION_UNAVAILABLE_MESSAGE);
       return;
     }
     const input = {
@@ -206,11 +206,8 @@ export function SimulationFormPage() {
         );
       }
     } catch (reason) {
-      const presentation = getApiProblemPresentation(
-        reason,
-        subjects.map(({ subjectId }) => subjectId),
-      );
-      setError(presentation.message ?? GENERIC_API_ERROR_MESSAGE);
+      const presentation = simulationErrorPresentation(reason);
+      setError(presentation.message);
       setApiFieldErrors(presentation.fieldErrors.map(({ detail }) => detail));
       submitted.current = false;
       setPending(false);
@@ -226,17 +223,14 @@ export function SimulationFormPage() {
   return (
     <section aria-labelledby="simulation-form-title" className="mx-auto max-w-4xl space-y-5">
       <Link
-        className="text-label-large font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+        className="account-button-secondary inline-flex min-h-10 items-center justify-center rounded-lg bg-surface px-3 text-label-medium font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         to={`/admin/turmas/${encodeURIComponent(classId)}/simulados`}
       >
         ← Voltar aos simulados
       </Link>
       <div>
-        <p className="text-label-large font-semibold uppercase tracking-wide text-primary">
-          {schoolClass ? classLabel(schoolClass) : 'Simulado'}
-        </p>
         <h1
-          className="mt-2 text-headline-small font-semibold text-on-surface"
+          className="text-headline-small font-semibold text-on-surface"
           id="simulation-form-title"
         >
           {title}
@@ -257,7 +251,7 @@ export function SimulationFormPage() {
       )}
       {apiFieldErrors.length > 0 && (
         <ul
-          aria-label="Erros de validação da API"
+          aria-label="Erros de validação"
           className="space-y-1 rounded-lg border border-danger bg-error-surface p-4 text-body-medium text-danger"
           role="alert"
         >
@@ -275,232 +269,272 @@ export function SimulationFormPage() {
         </p>
       )}
       {!loading && !error && schoolClass && !schoolClass.isClosed && (
-        <form
-          className="panel-surface space-y-6 rounded-2xl bg-surface p-5 sm:p-6"
-          onSubmit={submit}
-        >
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <label
-                className="text-label-large font-medium text-on-surface"
-                htmlFor="simulation-type"
-              >
-                Tipo
-              </label>
-              <select
-                className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
-                id="simulation-type"
-                onChange={(event) => {
-                  setDraft({
-                    ...draft,
-                    type: event.currentTarget.value as SimulationFormDraft['type'],
-                  });
-                  setApiFieldErrors([]);
-                }}
-                required
-                value={draft.type}
-              >
-                <option value="" disabled>
-                  Selecione
-                </option>
-                <option value="objetivo">Objetivo</option>
-                <option value="dissertativo">Dissertativo</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label
-                className="text-label-large font-medium text-on-surface"
-                htmlFor="simulation-bimester"
-              >
-                Bimestre
-              </label>
-              <select
-                className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
-                id="simulation-bimester"
-                onChange={(event) => {
-                  setDraft({ ...draft, bimester: event.currentTarget.value });
-                  setWeightStatus('loading');
-                  setExistingSimulations([]);
-                  setApiFieldErrors([]);
-                }}
-                required
-                value={draft.bimester}
-              >
-                {[1, 2, 3, 4].map((value) => (
-                  <option key={value} value={value}>
-                    {value}º bimestre
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label
-                className="text-label-large font-medium text-on-surface"
-                htmlFor="simulation-date"
-              >
-                Data agendada
-              </label>
-              <input
-                className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
-                id="simulation-date"
-                onChange={(event) => {
-                  setDraft({ ...draft, scheduledDate: event.currentTarget.value });
-                  setApiFieldErrors([]);
-                }}
-                required
-                type="date"
-                value={draft.scheduledDate}
-              />
-            </div>
-          </div>
-          {isPastCivilDate(draft.scheduledDate) && (
-            <p
-              className="rounded-lg border border-warning bg-warning-surface p-3 text-body-medium text-on-surface"
-              role="status"
-            >
-              A data agendada ({civilDateLabel(draft.scheduledDate)}) está no passado. Você ainda
-              pode salvar o simulado.
-            </p>
-          )}
-
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-title-medium font-semibold text-on-surface">
-                  Matérias e pesos
-                </h2>
-                <p className="mt-1 text-body-small text-muted">
-                  Os saldos são estimativas; a API valida a alocação no momento do salvamento.
-                </p>
+        <form className="space-y-6" onSubmit={submit}>
+          <div className="panel-surface space-y-5 rounded-2xl bg-surface p-5 sm:p-6">
+            <h2 className="text-title-medium font-semibold text-on-surface">
+              Informações do simulado
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label
+                  className="text-label-large font-medium text-on-surface"
+                  htmlFor="simulation-class"
+                >
+                  Turma
+                </label>
+                <select
+                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface disabled:cursor-not-allowed disabled:bg-surface-container disabled:opacity-100"
+                  disabled
+                  id="simulation-class"
+                  value={schoolClass.classId}
+                >
+                  <option value={schoolClass.classId}>{classLabel(schoolClass)}</option>
+                </select>
               </div>
-              <button
-                className="min-h-10 rounded-lg border border-panel-outline px-3 text-label-medium font-medium text-primary focus-visible:outline-2 focus-visible:outline-primary"
-                onClick={restoreSubjects}
-                type="button"
-              >
-                Restaurar todas
-              </button>
+              <div className="space-y-2">
+                <label
+                  className="text-label-large font-medium text-on-surface"
+                  htmlFor="simulation-school-year"
+                >
+                  Ano letivo
+                </label>
+                <select
+                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface disabled:cursor-not-allowed disabled:bg-surface-container disabled:opacity-100"
+                  disabled
+                  id="simulation-school-year"
+                  value={schoolClass.schoolYear}
+                >
+                  <option value={schoolClass.schoolYear}>{schoolClass.schoolYear}</option>
+                </select>
+              </div>
             </div>
-            {offeredSubjects.length === 0 && (
-              <p className="rounded-lg border border-warning bg-warning-surface p-4 text-body-medium text-on-surface">
-                Esta turma não tem matérias oferecidas no momento.
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <label
+                  className="text-label-large font-medium text-on-surface"
+                  htmlFor="simulation-type"
+                >
+                  Tipo
+                </label>
+                <select
+                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
+                  id="simulation-type"
+                  onChange={(event) => {
+                    setDraft({
+                      ...draft,
+                      type: event.currentTarget.value as SimulationFormDraft['type'],
+                    });
+                    setApiFieldErrors([]);
+                  }}
+                  required
+                  value={draft.type}
+                >
+                  <option value="" disabled>
+                    Selecione
+                  </option>
+                  <option value="objetivo">Objetivo</option>
+                  <option value="dissertativo">Dissertativo</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label
+                  className="text-label-large font-medium text-on-surface"
+                  htmlFor="simulation-bimester"
+                >
+                  Bimestre
+                </label>
+                <select
+                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
+                  id="simulation-bimester"
+                  onChange={(event) => {
+                    setDraft({ ...draft, bimester: event.currentTarget.value });
+                    setWeightStatus('loading');
+                    setExistingSimulations([]);
+                    setApiFieldErrors([]);
+                  }}
+                  required
+                  value={draft.bimester}
+                >
+                  {[1, 2, 3, 4].map((value) => (
+                    <option key={value} value={value}>
+                      {value}º bimestre
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label
+                  className="text-label-large font-medium text-on-surface"
+                  htmlFor="simulation-date"
+                >
+                  Data agendada
+                </label>
+                <input
+                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
+                  id="simulation-date"
+                  onChange={(event) => {
+                    setDraft({ ...draft, scheduledDate: event.currentTarget.value });
+                    setApiFieldErrors([]);
+                  }}
+                  required
+                  type="date"
+                  value={draft.scheduledDate}
+                />
+              </div>
+            </div>
+            {isPastCivilDate(draft.scheduledDate) && (
+              <p
+                className="rounded-lg border border-warning bg-warning-surface p-3 text-body-medium text-on-surface"
+                role="status"
+              >
+                A data agendada ({civilDateLabel(draft.scheduledDate)}) está no passado. Você ainda
+                pode salvar o simulado.
               </p>
             )}
-            {fieldErrors.subjects && (
-              <p className="text-body-medium text-danger" role="alert">
-                {fieldErrors.subjects}
-              </p>
-            )}
-            <ul className="space-y-3">
-              {selectedSubjects.map((subject) => {
-                const values = draft.subjects.find(
-                  ({ subjectId }) => subjectId === subject.subjectId,
-                );
-                if (!values) return null;
-                const allocated = allocatedWeight(
-                  existingSimulations,
-                  subject.subjectId,
-                  Number(draft.bimester),
-                  exceptSimulationId,
-                );
-                return (
-                  <li
-                    className="rounded-xl border border-panel-outline p-4"
-                    key={subject.subjectId}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <h3 className="text-title-small font-semibold text-on-surface">
-                        {subject.name}
-                      </h3>
-                      <button
-                        aria-label={`Remover ${subject.name}`}
-                        className="min-h-10 rounded-lg px-3 text-label-medium font-medium text-danger underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-danger"
-                        onClick={() => removeSubject(subject.subjectId)}
-                        type="button"
-                      >
-                        Remover
-                      </button>
-                    </div>
-                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <label
-                          className="text-label-medium font-medium text-on-surface"
-                          htmlFor={`questions-${subject.subjectId}`}
+          </div>
+
+          <div className="panel-surface space-y-5 rounded-2xl bg-surface p-5 sm:p-6">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-title-medium font-semibold text-on-surface">
+                    Matérias e pesos
+                  </h2>
+                  <p className="mt-1 text-body-small text-muted">
+                    Os saldos são estimativas. A distribuição será conferida ao salvar.
+                  </p>
+                </div>
+                <button
+                  className="account-button-primary min-h-10 rounded-lg bg-primary px-3 text-label-medium font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  onClick={restoreSubjects}
+                  type="button"
+                >
+                  Restaurar todas
+                </button>
+              </div>
+              {offeredSubjects.length === 0 && (
+                <p className="rounded-lg border border-warning bg-warning-surface p-4 text-body-medium text-on-surface">
+                  Esta turma não tem matérias oferecidas no momento.
+                </p>
+              )}
+              {fieldErrors.subjects && (
+                <p className="text-body-medium text-danger" role="alert">
+                  {fieldErrors.subjects}
+                </p>
+              )}
+              <ul className="space-y-3">
+                {selectedSubjects.map((subject) => {
+                  const values = draft.subjects.find(
+                    ({ subjectId }) => subjectId === subject.subjectId,
+                  );
+                  if (!values) return null;
+                  const allocated = allocatedWeight(
+                    existingSimulations,
+                    subject.subjectId,
+                    Number(draft.bimester),
+                    exceptSimulationId,
+                  );
+                  return (
+                    <li
+                      className="rounded-xl border border-panel-outline p-4"
+                      key={subject.subjectId}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <h3 className="text-title-small font-semibold text-on-surface">
+                          {subject.name}
+                        </h3>
+                        <button
+                          aria-label={`Remover ${subject.name}`}
+                          className="min-h-10 rounded-lg px-3 text-label-medium font-medium text-danger underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-danger"
+                          onClick={() => removeSubject(subject.subjectId)}
+                          type="button"
                         >
-                          Quantidade de questões
-                        </label>
-                        <input
-                          className="min-h-11 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
-                          id={`questions-${subject.subjectId}`}
-                          min="1"
-                          onChange={(event) =>
-                            changeSubject(
-                              subject.subjectId,
-                              'totalQuestions',
-                              event.currentTarget.value,
-                            )
-                          }
-                          required
-                          step="1"
-                          type="number"
-                          value={values.totalQuestions}
-                        />
+                          Remover
+                        </button>
                       </div>
-                      <div className="space-y-2">
-                        <label
-                          className="text-label-medium font-medium text-on-surface"
-                          htmlFor={`weight-${subject.subjectId}`}
+                      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <label
+                            className="text-label-medium font-medium text-on-surface"
+                            htmlFor={`questions-${subject.subjectId}`}
+                          >
+                            Quantidade de questões
+                          </label>
+                          <input
+                            className="min-h-11 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
+                            id={`questions-${subject.subjectId}`}
+                            min="1"
+                            onChange={(event) =>
+                              changeSubject(
+                                subject.subjectId,
+                                'totalQuestions',
+                                event.currentTarget.value,
+                              )
+                            }
+                            required
+                            step="1"
+                            type="number"
+                            value={values.totalQuestions}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label
+                            className="text-label-medium font-medium text-on-surface"
+                            htmlFor={`weight-${subject.subjectId}`}
+                          >
+                            Peso (%)
+                          </label>
+                          <input
+                            className="min-h-11 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
+                            id={`weight-${subject.subjectId}`}
+                            max="100"
+                            min="0.01"
+                            onChange={(event) =>
+                              changeSubject(
+                                subject.subjectId,
+                                'weightPercent',
+                                event.currentTarget.value,
+                              )
+                            }
+                            required
+                            step="0.01"
+                            type="number"
+                            value={values.weightPercent}
+                          />
+                        </div>
+                      </div>
+                      {weightStatus === 'ready' && (
+                        <p className="mt-3 text-body-small text-muted">
+                          Já alocado neste bimestre: {formatPercent(allocated)} · Saldo estimado:{' '}
+                          {formatPercent(100 - allocated)}
+                        </p>
+                      )}
+                      {weightStatus === 'loading' && (
+                        <p
+                          aria-live="polite"
+                          className="mt-3 text-body-small text-muted"
+                          role="status"
                         >
-                          Peso (%)
-                        </label>
-                        <input
-                          className="min-h-11 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
-                          id={`weight-${subject.subjectId}`}
-                          max="100"
-                          min="0.01"
-                          onChange={(event) =>
-                            changeSubject(
-                              subject.subjectId,
-                              'weightPercent',
-                              event.currentTarget.value,
-                            )
-                          }
-                          required
-                          step="0.01"
-                          type="number"
-                          value={values.weightPercent}
-                        />
-                      </div>
-                    </div>
-                    {weightStatus === 'ready' && (
-                      <p className="mt-3 text-body-small text-muted">
-                        Já alocado neste bimestre: {formatPercent(allocated)} · Saldo estimado:{' '}
-                        {formatPercent(100 - allocated)}
-                      </p>
-                    )}
-                    {weightStatus === 'loading' && (
-                      <p
-                        aria-live="polite"
-                        className="mt-3 text-body-small text-muted"
-                        role="status"
-                      >
-                        Carregando pesos já alocados…
-                      </p>
-                    )}
-                    {weightStatus === 'error' && (
-                      <p className="mt-3 text-body-small text-danger" role="status">
-                        Não foi possível carregar os pesos existentes; o saldo não está disponível.
-                      </p>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-            {selectedSubjects.length === 0 && offeredSubjects.length > 0 && (
-              <p className="text-body-medium text-muted">
-                Nenhuma matéria selecionada. Restaure as matérias ou selecione pelo menos uma.
-              </p>
-            )}
+                          Carregando pesos já alocados…
+                        </p>
+                      )}
+                      {weightStatus === 'error' && (
+                        <p className="mt-3 text-body-small text-danger" role="status">
+                          Não foi possível carregar os pesos existentes; o saldo não está
+                          disponível.
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              {selectedSubjects.length === 0 && offeredSubjects.length > 0 && (
+                <p className="text-body-medium text-muted">
+                  Nenhuma matéria selecionada. Restaure as matérias ou selecione pelo menos uma.
+                </p>
+              )}
+            </div>
           </div>
           {fieldErrors.form && (
             <p className="text-body-medium text-danger" role="alert">
@@ -516,7 +550,7 @@ export function SimulationFormPage() {
               {pending ? 'Salvando…' : 'Salvar simulado'}
             </button>
             <Link
-              className="account-button-secondary inline-flex min-h-12 items-center justify-center rounded-lg border border-panel-outline px-6 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="account-button-secondary inline-flex min-h-12 items-center justify-center rounded-lg bg-surface px-6 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               to={`/admin/turmas/${encodeURIComponent(classId)}/simulados`}
             >
               Cancelar

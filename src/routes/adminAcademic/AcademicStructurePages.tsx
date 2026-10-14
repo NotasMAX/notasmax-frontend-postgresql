@@ -898,8 +898,36 @@ export function AcademicClassFormPage() {
               />
             </div>
           )}
-          {!editing &&
-            candidateClasses.some((candidate) => candidate.series === Number(series)) && (
+          <div className="flex flex-wrap gap-3">
+            <button
+              className={primaryButtonClass}
+              disabled={saving || (editing && !etag)}
+              type="submit"
+            >
+              {saving ? 'Salvando…' : 'Salvar turma'}
+            </button>
+            <Link className={secondaryButtonClass} to="/admin/estrutura/turmas">
+              Cancelar
+            </Link>
+          </div>
+        </form>
+      )}
+      {confirmCreate && (
+        <ConfirmDialog
+          confirmLabel="Confirmar cadastro"
+          onCancel={() => setConfirmCreate(false)}
+          onConfirm={() => void confirmClassCreate()}
+          pending={saving}
+          pendingLabel="Cadastrando…"
+          title="Confirmar cadastro da turma?"
+        >
+          <div className="space-y-3">
+            <p>
+              {selectedCloseIds.length
+                ? `A nova turma só será criada se todas as ${selectedCloseIds.length} turma(s) escolhidas puderem ser encerradas. Se algo impedir a ação, nenhuma mudança será feita.`
+                : 'A turma será criada com os dados informados.'}
+            </p>
+            {candidateClasses.some((candidate) => candidate.series === Number(series)) && (
               <fieldset className="space-y-2">
                 <legend className="text-label-large font-medium text-on-surface">
                   Turmas do ano anterior para encerrar, se aplicável
@@ -928,32 +956,7 @@ export function AcademicClassFormPage() {
                   ))}
               </fieldset>
             )}
-          <div className="flex flex-wrap gap-3">
-            <button
-              className={primaryButtonClass}
-              disabled={saving || (editing && !etag)}
-              type="submit"
-            >
-              {saving ? 'Salvando…' : 'Salvar turma'}
-            </button>
-            <Link className={secondaryButtonClass} to="/admin/estrutura/turmas">
-              Cancelar
-            </Link>
           </div>
-        </form>
-      )}
-      {confirmCreate && (
-        <ConfirmDialog
-          confirmLabel="Confirmar cadastro"
-          onCancel={() => setConfirmCreate(false)}
-          onConfirm={() => void confirmClassCreate()}
-          pending={saving}
-          pendingLabel="Cadastrando…"
-          title="Confirmar cadastro da turma?"
-        >
-          {selectedCloseIds.length
-            ? `A nova turma será criada e ${selectedCloseIds.length} turma(s) selecionada(s) serão encerradas juntas. Se alguma condição não for atendida, nada será alterado.`
-            : 'A turma será criada com os dados informados.'}
         </ConfirmDialog>
       )}
     </AcademicPageLayout>

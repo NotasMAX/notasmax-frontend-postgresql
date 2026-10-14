@@ -9,10 +9,10 @@ import {
   type OfferedSubject,
   type Simulation,
 } from '../../api/adminSimulations';
-import { GENERIC_API_ERROR_MESSAGE, getApiProblemPresentation } from '../../api/problemDetails';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Badge } from '../../components/Badge';
 import { classLabel, civilDateLabel } from '../adminAccounts/accountUi';
+import { simulationErrorMessage, SIMULATION_VERSION_UNAVAILABLE_MESSAGE } from './simulationErrors';
 
 type ConfirmationAction = 'realize' | 'delete' | null;
 
@@ -24,10 +24,6 @@ function createdNumberFromState(value: unknown): number | undefined {
   if (typeof value !== 'object' || value === null) return undefined;
   const number = (value as DetailLocationState).createdNumber;
   return Number.isSafeInteger(number) && Number(number) > 0 ? Number(number) : undefined;
-}
-
-function publicError(error: unknown): string {
-  return getApiProblemPresentation(error).message ?? GENERIC_API_ERROR_MESSAGE;
 }
 
 export function SimulationDetailPage() {
@@ -78,7 +74,7 @@ export function SimulationDetailPage() {
           setError(
             reason instanceof Error && reason.message === 'class-unavailable'
               ? 'A turma não está disponível para consulta.'
-              : publicError(reason),
+              : simulationErrorMessage(reason),
           );
       })
       .finally(() => {
@@ -100,9 +96,7 @@ export function SimulationDetailPage() {
         const result = await realizeSimulation(classId, simulationId, etag);
         setSimulation(result.simulation);
         setEtag(result.etag);
-        setFeedback(
-          'Realização confirmada. O simulado e os participantes elegíveis foram congelados pela API.',
-        );
+        setFeedback('Simulado realizado. Ele não poderá mais ser alterado.');
       } else {
         await deleteSimulation(classId, simulationId, etag);
         navigate(`/admin/turmas/${encodeURIComponent(classId)}/simulados`, {
@@ -112,7 +106,7 @@ export function SimulationDetailPage() {
       }
       setConfirmation(null);
     } catch (reason) {
-      setError(publicError(reason));
+      setError(simulationErrorMessage(reason));
       setConfirmation(null);
       try {
         const refreshed = await load();
@@ -140,10 +134,10 @@ export function SimulationDetailPage() {
   return (
     <section aria-labelledby="simulation-detail-title" className="mx-auto max-w-4xl space-y-5">
       <Link
-        className="text-label-large font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+        className="account-button-secondary inline-flex min-h-10 items-center justify-center rounded-lg bg-surface px-3 text-label-medium font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         to={`/admin/turmas/${encodeURIComponent(classId)}/simulados`}
       >
-        ← Voltar à lista
+        ← Voltar aos simulados
       </Link>
       {loading && (
         <p aria-live="polite" className="text-body-large text-muted" role="status">
@@ -173,24 +167,17 @@ export function SimulationDetailPage() {
               className="rounded-lg border border-success bg-success-surface p-4 text-body-medium text-success"
               role="status"
             >
-              Simulado nº {simulation.number} criado pela API.
+              Simulado nº {simulation.number} criado.
             </p>
           )}
           <header className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-label-large font-semibold uppercase tracking-wide text-primary">
-                {classLabel(schoolClass)} · {schoolClass.schoolYear}
-              </p>
               <h1
-                className="mt-2 text-headline-small font-semibold text-on-surface"
+                className="text-headline-small font-semibold text-on-surface"
                 id="simulation-detail-title"
               >
                 Simulado nº {simulation.number}
               </h1>
-              <p className="mt-2 text-body-large text-muted">
-                {simulation.type === 'objetivo' ? 'Objetivo' : 'Dissertativo'} ·{' '}
-                {simulation.bimester}º bimestre · {civilDateLabel(simulation.scheduledDate)}
-              </p>
             </div>
             <div className="flex flex-wrap gap-2">
               {schoolClass.isClosed && <Badge tone="warning">Turma fechada</Badge>}
@@ -206,8 +193,7 @@ export function SimulationDetailPage() {
               className="rounded-lg border border-warning bg-warning-surface p-4 text-body-medium text-on-surface"
               role="status"
             >
-              Turma fechada. Este simulado permanece disponível para consulta histórica; a API não
-              aceita mutações nesta turma.
+              Esta turma está encerrada. O simulado pode ser consultado, mas não pode ser alterado.
             </p>
           )}
           {simulation.realizedAt && (
@@ -225,12 +211,53 @@ export function SimulationDetailPage() {
               className="rounded-lg border border-warning bg-warning-surface p-4 text-body-medium text-on-surface"
               role="status"
             >
-              A resposta não incluiu o ETag atual. Atualize a página antes de qualquer alteração.
+              {SIMULATION_VERSION_UNAVAILABLE_MESSAGE}
             </p>
+          )}
+
+          {canMutate && (
+            <div
+              aria-label="Ações do simulado"
+              className="flex flex-wrap items-center justify-between gap-3"
+              role="group"
+            >
+              <Link
+                className="account-button-primary inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                to={`/admin/turmas/${encodeURIComponent(classId)}/simulados/${encodeURIComponent(simulationId)}/editar`}
+              >
+                Editar simulado
+              </Link>
+              <div className="ml-auto flex flex-wrap gap-3">
+                <button
+                  className="account-button-primary min-h-11 rounded-lg bg-success px-4 text-label-large font-semibold text-on-primary hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-success disabled:opacity-60"
+                  disabled={pending}
+                  onClick={() => setConfirmation('realize')}
+                  type="button"
+                >
+                  Confirmar realização
+                </button>
+                <button
+                  className="account-button-primary min-h-11 rounded-lg bg-danger px-4 text-label-large font-semibold text-on-primary hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger disabled:opacity-60"
+                  disabled={pending}
+                  onClick={() => setConfirmation('delete')}
+                  type="button"
+                >
+                  Excluir simulado
+                </button>
+              </div>
+            </div>
           )}
 
           <div className="panel-surface space-y-5 rounded-2xl bg-surface p-5 sm:p-6">
             <dl className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-label-medium font-medium text-muted">Turma</dt>
+                <dd className="mt-1 text-body-large text-on-surface">{classLabel(schoolClass)}</dd>
+              </div>
+              <div>
+                <dt className="text-label-medium font-medium text-muted">Ano letivo</dt>
+                <dd className="mt-1 text-body-large text-on-surface">{schoolClass.schoolYear}</dd>
+              </div>
               <div>
                 <dt className="text-label-medium font-medium text-muted">Tipo</dt>
                 <dd className="mt-1 text-body-large text-on-surface">
@@ -252,59 +279,32 @@ export function SimulationDetailPage() {
                 <dd className="mt-1 text-body-large text-on-surface">{simulation.number}</dd>
               </div>
             </dl>
-            <div>
-              <h2 className="text-title-medium font-semibold text-on-surface">Matérias</h2>
-              <ul className="mt-3 divide-y divide-panel-outline">
-                {simulation.subjects.map((subject) => (
-                  <li
-                    className="flex flex-wrap justify-between gap-2 py-3 text-body-medium text-on-surface"
-                    key={subject.subjectId}
-                  >
-                    <span>
-                      {subjectById.get(subject.subjectId) ?? `Matéria ${subject.subjectId}`}
-                    </span>
-                    <span>
-                      {subject.totalQuestions} questões ·{' '}
-                      {subject.weightPercent.toFixed(2).replace('.', ',')}%
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
           </div>
-
-          {canMutate && (
-            <div className="flex flex-wrap gap-3">
-              <Link
-                className="account-button-secondary inline-flex min-h-11 items-center justify-center rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                to={`/admin/turmas/${encodeURIComponent(classId)}/simulados/${encodeURIComponent(simulationId)}/editar`}
-              >
-                Editar simulado
-              </Link>
-              <button
-                className="account-button-primary min-h-11 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
-                disabled={pending}
-                onClick={() => setConfirmation('realize')}
-                type="button"
-              >
-                Confirmar realização
-              </button>
-              <button
-                className="min-h-11 rounded-lg border border-danger px-4 text-label-large font-medium text-danger focus-visible:outline-2 focus-visible:outline-danger disabled:opacity-60"
-                disabled={pending}
-                onClick={() => setConfirmation('delete')}
-                type="button"
-              >
-                Excluir simulado
-              </button>
-            </div>
-          )}
+          <div className="panel-surface space-y-4 rounded-2xl bg-surface p-5 sm:p-6">
+            <h2 className="text-title-medium font-semibold text-on-surface">Matérias</h2>
+            <ul className="grid gap-3">
+              {simulation.subjects.map((subject) => (
+                <li
+                  className="panel-surface flex flex-wrap items-center justify-between gap-2 rounded-xl bg-surface p-4 text-body-medium text-on-surface"
+                  key={subject.subjectId}
+                >
+                  <span>
+                    {subjectById.get(subject.subjectId) ?? `Matéria ${subject.subjectId}`}
+                  </span>
+                  <span>
+                    {subject.totalQuestions} questões ·{' '}
+                    {subject.weightPercent.toFixed(2).replace('.', ',')}%
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </>
       )}
       {confirmation === 'realize' && simulation && (
         <ConfirmDialog
           confirmLabel="Confirmar realização"
-          description={`A confirmação congela o simulado nº ${simulation.number} e os alunos elegíveis conforme a API. Esta ação não pode ser desfeita.`}
+          description={`Ao confirmar, o simulado nº ${simulation.number} não poderá mais ser alterado e somente os alunos aptos poderão realizá-lo. Esta ação não pode ser desfeita.`}
           onCancel={() => setConfirmation(null)}
           onConfirm={() => void confirmAction()}
           pending={pending}
@@ -314,7 +314,7 @@ export function SimulationDetailPage() {
       {confirmation === 'delete' && simulation && (
         <ConfirmDialog
           confirmLabel="Excluir simulado"
-          description={`O simulado nº ${simulation.number} será excluído logicamente. A API recusará a operação se houver realização ou resultados vinculados.`}
+          description={`O simulado nº ${simulation.number} será removido. Não será possível removê-lo se já tiver sido realizado ou tiver resultados registrados.`}
           onCancel={() => setConfirmation(null)}
           onConfirm={() => void confirmAction()}
           pending={pending}

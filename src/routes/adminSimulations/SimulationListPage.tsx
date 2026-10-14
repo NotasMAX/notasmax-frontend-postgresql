@@ -13,6 +13,7 @@ import { GENERIC_API_ERROR_MESSAGE, getApiProblemPresentation } from '../../api/
 import { Badge } from '../../components/Badge';
 import { SelectField } from '../../components/SelectField';
 import { civilDateLabel, classLabel } from '../adminAccounts/accountUi';
+import { SimulationActionIcon } from './SimulationActionIcon';
 import {
   emptySimulationFilters,
   type SimulationFiltersDraft,
@@ -55,10 +56,10 @@ export function SimulationListPage() {
     if (!classId) return;
     let active = true;
     void Promise.all([loadAdminClasses(), listOfferedSubjects(classId)])
-      .then(([classes, offered]) => {
+      .then(([availableClasses, offered]) => {
         if (!active) return;
         setClassError(null);
-        const match = classes.find((item) => item.classId === classId);
+        const match = availableClasses.find((item) => item.classId === classId);
         if (!match) {
           setClassError('A turma não está disponível para consulta.');
           return;
@@ -125,7 +126,7 @@ export function SimulationListPage() {
   return (
     <section aria-labelledby="simulations-title" className="space-y-5">
       <Link
-        className="text-label-large font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+        className="account-button-secondary inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-panel-outline bg-surface px-3 text-label-medium font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         to="/admin/simulados"
       >
         ← Escolher outra turma
@@ -146,16 +147,14 @@ export function SimulationListPage() {
       {!classLoading && !classError && schoolClass && (
         <>
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-label-large font-semibold uppercase tracking-wide text-primary">
-                Simulados
-              </p>
+            <div className="min-w-0 flex-1">
               <h1
-                className="mt-2 text-headline-small font-semibold text-on-surface"
+                className="text-headline-small font-semibold text-on-surface"
                 id="simulations-title"
               >
-                {classLabel(schoolClass)} · {schoolClass.schoolYear}
+                Simulados
               </h1>
+              <p className="mt-1 text-body-large text-muted">{classLabel(schoolClass)}</p>
               {schoolClass.isClosed && (
                 <p className="mt-2 rounded-lg border border-warning bg-warning-surface p-3 text-body-medium text-on-surface">
                   Turma fechada. A consulta histórica continua disponível; alterações não estão
@@ -165,9 +164,10 @@ export function SimulationListPage() {
             </div>
             {!schoolClass.isClosed && (
               <Link
-                className="account-button-primary inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="account-button-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 to={`/admin/turmas/${encodeURIComponent(classId)}/simulados/novo`}
               >
+                <SimulationActionIcon name="plus" />
                 Novo simulado
               </Link>
             )}
@@ -352,9 +352,10 @@ export function SimulationListPage() {
                     <div className="flex items-center gap-3">
                       {simulation.realizedAt && <Badge tone="positive">Realizado</Badge>}
                       <Link
-                        className="account-button-secondary inline-flex min-h-11 items-center justify-center rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        className="account-button-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         to={`/admin/turmas/${encodeURIComponent(classId)}/simulados/${encodeURIComponent(simulation.simulationId)}`}
                       >
+                        <SimulationActionIcon name="arrow-right" />
                         Abrir detalhe
                       </Link>
                     </div>

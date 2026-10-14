@@ -65,10 +65,6 @@ function emptyDraft(search = ''): AccountFilterDraft {
   };
 }
 
-function safeSearch(filters: AccountFilters): string[] {
-  return 'search' in filters && filters.search ? [filters.search] : [];
-}
-
 interface AccountListPageProps {
   readonly profile: AccountProfile;
   readonly locationState?: unknown;
@@ -178,7 +174,7 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
         if (active) setFilterOptions(options);
       })
       .catch((error: unknown) => {
-        if (active) setFilterOptionsError(accountErrorMessage(error, []));
+        if (active) setFilterOptionsError(accountErrorMessage(error));
       })
       .finally(() => {
         if (active) setFilterOptionsLoading(false);
@@ -199,7 +195,7 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
       })
       .catch((error: unknown) => {
         if (active) {
-          setErrorMessage(accountErrorMessage(error, safeSearch(filters)));
+          setErrorMessage(accountErrorMessage(error));
         }
       })
       .finally(() => {
