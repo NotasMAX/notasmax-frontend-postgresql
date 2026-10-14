@@ -27,13 +27,13 @@ describe('administrative account filter lookup boundary', () => {
       .mockResolvedValueOnce({ data: { items: [{ schoolYear: 2026 }] } } as never)
       .mockResolvedValueOnce({
         data: {
-          items: [{ classId: '44', series: 9, schoolYear: 2026 }],
+          items: [{ classId: '44', series: 9, schoolYear: 2026, isClosed: false }],
           pagination: { totalPages: 1 },
         },
       } as never);
 
     await expect(loadAccountFilterOptions('student')).resolves.toEqual({
-      classes: [{ classId: '44', series: 9, schoolYear: 2026 }],
+      classes: [{ classId: '44', series: 9, schoolYear: 2026, isClosed: false }],
       subjects: [],
     });
     expect(apiClient.get).toHaveBeenNthCalledWith(1, '/api/v1/admin/school-years');
@@ -47,7 +47,7 @@ describe('administrative account filter lookup boundary', () => {
       .mockResolvedValueOnce({ data: { items: [{ schoolYear: 2026 }] } } as never)
       .mockResolvedValueOnce({
         data: {
-          items: [{ classId: '44', series: 9, schoolYear: 2026 }],
+          items: [{ classId: '44', series: 9, schoolYear: 2026, isClosed: true }],
           pagination: { totalPages: 1 },
         },
       } as never)
@@ -65,7 +65,7 @@ describe('administrative account filter lookup boundary', () => {
       } as never);
 
     await expect(loadAccountFilterOptions('teacher')).resolves.toEqual({
-      classes: [{ classId: '44', series: 9, schoolYear: 2026 }],
+      classes: [{ classId: '44', series: 9, schoolYear: 2026, isClosed: true }],
       subjects: [
         { subjectId: '7', name: 'Matemática', description: null },
         { subjectId: '8', name: 'História', description: null },

@@ -7,6 +7,7 @@ export interface AdminClassOption {
   readonly classId: string;
   readonly series: number;
   readonly schoolYear: number;
+  readonly isClosed: boolean;
 }
 
 export interface AdminSubjectOption {
@@ -171,12 +172,16 @@ export async function updateAdminSubject(
 export async function loadAccountFilterOptions(
   profile: 'student' | 'teacher',
 ): Promise<AccountFilterOptions> {
-  const schoolYears = await listAdminSchoolYears();
-  const classesByYear = await Promise.all(
-    schoolYears.map((schoolYear) => listClassesForSchoolYear(schoolYear)),
-  );
-  const classes = classesByYear.flat();
+  const classes = await loadAdminClasses();
   const subjects = profile === 'teacher' ? await listAllAdminSubjects() : [];
 
   return { classes, subjects };
+}
+
+export async function loadAdminClasses(): Promise<AdminClassOption[]> {
+  const yearsResponse = await apiClient.get<SchoolYearList>('/api/v1/admin/school-years');
+  const classesByYear = await Promise.all(
+    yearsResponse.data.items.map(({ schoolYear }) => listClassesForSchoolYear(schoolYear)),
+  );
+  return classesByYear.flat();
 }

@@ -111,7 +111,7 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
     try {
       setActivationStatus(await resendActivation(accountIdentifier(account)));
     } catch (error) {
-      setResendError(accountErrorMessage(error, [account.email]));
+      setResendError(accountErrorMessage(error));
     } finally {
       setResending(false);
     }

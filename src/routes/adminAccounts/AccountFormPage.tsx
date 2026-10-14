@@ -184,14 +184,6 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
     const nextEmail = values.email.trim();
     const emailIsChanging =
       editing && account !== null && normalizedEmail(nextEmail) !== normalizedEmail(account.email);
-    const sensitiveValues = [
-      values.name,
-      values.email,
-      values.contactPhone,
-      values.guardianPhone,
-      currentPassword,
-    ];
-
     setSaving(true);
     try {
       if (!editing) {
@@ -269,6 +261,7 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
         },
       });
     } catch (error) {
+      const sensitiveValues = [nextEmail, currentPassword, account?.email ?? ''];
       const parsed = getAccountFormErrors(error, visibleFields(profile), sensitiveValues);
       setErrors({
         ...parsed,

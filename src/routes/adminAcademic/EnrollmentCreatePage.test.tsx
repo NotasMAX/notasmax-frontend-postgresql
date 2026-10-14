@@ -31,7 +31,7 @@ function renderPage() {
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(structure.loadAllAcademicClasses).mockResolvedValue([
-    { classId: '44', series: 2, schoolYear: 2026 },
+    { classId: '44', series: 2, schoolYear: 2026, isClosed: false },
   ]);
   vi.mocked(accountService.loadAccountPage).mockResolvedValue({
     items: [

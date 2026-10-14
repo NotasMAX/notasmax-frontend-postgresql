@@ -33,7 +33,9 @@ describe('account UI contract helpers', () => {
   });
 
   it('builds only filters supported by each profile contract', () => {
-    const classes: AdminClassOption[] = [{ classId: '42', schoolYear: 2026, series: 9 }];
+    const classes: AdminClassOption[] = [
+      { classId: '42', schoolYear: 2026, series: 9, isClosed: false },
+    ];
     expect(buildAccountFilters('student', emptyDraft, 2, classes)).toEqual({
       search: 'Ada',
       activationStatus: 'pending',
@@ -58,7 +60,7 @@ describe('account UI contract helpers', () => {
 
   it('does not send internal class IDs when an academic year and series do not match', () => {
     const filters = buildAccountFilters('student', emptyDraft, 1, [
-      { classId: '42', schoolYear: 2025, series: 9 },
+      { classId: '42', schoolYear: 2025, series: 9, isClosed: false },
     ]);
     expect(filters).not.toHaveProperty('classId');
   });
@@ -68,44 +70,40 @@ describe('account UI contract helpers', () => {
     expect(civilDateLabel('unknown')).toBe('unknown');
   });
 
-  it('maps validated RFC 9457 field errors and keeps API text safe', () => {
+  it('maps validated RFC 9457 field errors and preserves API messages', () => {
     const error = new ApiRequestError({
       status: 422,
       problem: {
         status: 422,
-        title: 'Conteúdo inválido',
-        detail: 'Verifique os campos informados.',
+        title: 'Dados inválidos',
+        detail: 'Confira as informações e corrija os campos indicados.',
         errors: [
           {
             code: 'INVALID_FORMAT',
-            detail: 'O e-mail informado é inválido.',
+            detail: 'Use o formato indicado.',
             source: { in: 'body', pointer: '/email' },
           },
           {
             code: 'INVALID_VALUE',
-            detail: 'O parâmetro informado é inválido.',
+            detail: 'Escolha um valor válido.',
             source: { in: 'body', pointer: "/email'][aria-invalid='true" },
           },
           {
             code: 'INVALID_VALUE',
-            detail: 'O valor informado não pode ser usado.',
+            detail: 'Escolha um valor válido.',
             source: { in: 'body', pointer: '/currentPassword' },
           },
         ],
       },
     });
-    const result = getAccountFormErrors(
-      error,
-      ['email'],
-      ['ada@example.test', 'synthetic-password'],
-    );
+    const result = getAccountFormErrors(error, ['email']);
 
-    expect(result.fields.email).toEqual(['O e-mail informado é inválido.']);
+    expect(result.fields.email).toEqual(['Use o formato indicado.']);
     expect(result.fields.currentPassword).toEqual([]);
     expect(result.messages).toEqual([
-      'Verifique os campos informados.',
-      'O parâmetro informado é inválido.',
-      'O valor informado não pode ser usado.',
+      'Confira as informações e corrija os campos indicados.',
+      'Escolha um valor válido.',
+      'Escolha um valor válido.',
     ]);
     expect(JSON.stringify(result)).not.toContain('ada@example.test');
     expect(JSON.stringify(result)).not.toContain('synthetic-password');

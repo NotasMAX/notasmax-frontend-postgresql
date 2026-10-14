@@ -31,7 +31,13 @@ function renderPage() {
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(structure.loadAcademicClass).mockResolvedValue({
-    schoolClass: { classId: '44', series: 1, schoolYear: 2026, startDate: '2026-10-13' },
+    schoolClass: {
+      classId: '44',
+      series: 1,
+      schoolYear: 2026,
+      startDate: '2026-10-13',
+      isClosed: false,
+    },
     etag: '"class-v1"',
   });
   vi.mocked(lifecycle.loadAcademicOfferPage).mockResolvedValue({

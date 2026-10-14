@@ -17,7 +17,13 @@ beforeEach(() => vi.resetAllMocks());
 describe('selected prior-year class closure boundary', () => {
   it('loads each selected class and preserves its exact opaque ETag alongside its ID', async () => {
     vi.mocked(catalogApi.getAdminClass).mockImplementation(async (classId) => ({
-      schoolClass: { classId, series: 1, schoolYear: 2025, startDate: '2025-02-01' },
+      schoolClass: {
+        classId,
+        series: 1,
+        schoolYear: 2025,
+        startDate: '2025-02-01',
+        isClosed: false,
+      },
       etag: classId === 'prior-a' ? '"opaque-v/2025-a"' : '"opaque-v/2025-b"',
     }));
 
@@ -38,6 +44,7 @@ describe('selected prior-year class closure boundary', () => {
     vi.mocked(catalogApi.createAdminClass).mockResolvedValue({
       classId: 'new-class',
       ...input,
+      isClosed: false,
     });
 
     await createAcademicClassWithClosures(input, closures);
