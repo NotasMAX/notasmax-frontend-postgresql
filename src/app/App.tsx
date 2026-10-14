@@ -27,6 +27,7 @@ import {
 } from '../routes/adminAccounts/AccountRoutes';
 import { LoginPage } from '../routes/LoginPage';
 import { EnrollmentCreatePage } from '../routes/adminAcademic/EnrollmentCreatePage';
+import { ClassTeacherManagementPage } from '../routes/adminAcademic/ClassTeacherManagementPage';
 import { NotFoundPage } from '../routes/NotFoundPage';
 import { PasswordActionPage } from '../routes/PasswordActionPage';
 import { PasswordResetRequestPage } from '../routes/PasswordResetRequestPage';
@@ -191,8 +192,12 @@ export function AppRoutes({ sensitiveLink, setSensitiveLink }: AppRoutesProps) {
             path="admin/estrutura/turmas/:classId/editar"
             element={<AcademicClassFormPage />}
           />
+          <Route
+            path="admin/estrutura/turmas/:classId/materias/:subjectId/professores"
+            element={<ClassTeacherManagementPage />}
+          />
           <Route path="admin/estrutura/turmas/:classId" element={<AcademicClassDetailPage />} />
-          <Route path="admin/matriculas/nova" element={<EnrollmentCreatePage />} />
+          <Route path="admin/estrutura/matriculas/nova" element={<EnrollmentCreatePage />} />
           <Route path="admin/contas" element={<Navigate to="/admin/contas/alunos" replace />} />
           <Route path="admin/contas/:profile" element={<AdminAccountListRoute />} />
           <Route path="admin/contas/:profile/novo" element={<AdminAccountFormRoute />} />

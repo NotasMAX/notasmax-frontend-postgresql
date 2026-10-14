@@ -8,6 +8,7 @@ interface ConfirmDialogCommonProps {
   readonly pending?: boolean;
   readonly errorMessage?: string | null;
   readonly confirmDisabled?: boolean;
+  readonly confirmTone?: 'primary' | 'danger';
   readonly onCancel: () => void;
   readonly onConfirm: () => void;
 }
@@ -26,6 +27,7 @@ export function ConfirmDialog({
   pending = false,
   errorMessage,
   confirmDisabled = false,
+  confirmTone = 'primary',
   onCancel,
   onConfirm,
   children,
@@ -157,7 +159,11 @@ export function ConfirmDialog({
             Cancelar
           </button>
           <button
-            className="account-button-primary min-h-11 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
+            className={`account-button-primary min-h-11 rounded-lg px-4 text-label-large font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-70 ${
+              confirmTone === 'danger'
+                ? 'bg-danger hover:opacity-90 focus-visible:outline-danger'
+                : 'bg-primary hover:bg-primary-hover focus-visible:outline-primary'
+            }`}
             disabled={pending || confirmDisabled}
             onClick={onConfirm}
             ref={confirmRef}

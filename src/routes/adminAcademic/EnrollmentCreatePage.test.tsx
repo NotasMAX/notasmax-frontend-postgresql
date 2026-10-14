@@ -19,9 +19,9 @@ vi.mock('../../academic/academicLifecycleService', () => ({
 
 function renderPage() {
   return render(
-    <MemoryRouter initialEntries={['/admin/matriculas/nova']}>
+    <MemoryRouter initialEntries={['/admin/estrutura/matriculas/nova']}>
       <Routes>
-        <Route path="/admin/matriculas/nova" element={<EnrollmentCreatePage />} />
+        <Route path="/admin/estrutura/matriculas/nova" element={<EnrollmentCreatePage />} />
         <Route path="/admin/contas/alunos/:studentId" element={<p>Matrícula concluída</p>} />
       </Routes>
     </MemoryRouter>,
@@ -50,12 +50,35 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe('existing-student enrollment', () => {
+  it('shows the enrollment form only after a student is selected', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(screen.queryByLabelText('Turma')).toBeNull();
+    expect(
+      screen.getByText('Escolha um aluno, uma turma e a data de início para criar a matrícula.'),
+    ).toBeTruthy();
+    expect(screen.getByText('Buscar aluno sem matrícula ativa').className).toContain(
+      'text-label-large',
+    );
+    await user.click(screen.getByRole('button', { name: 'Buscar' }));
+    await screen.findByLabelText('Aluno');
+    expect(screen.queryByLabelText('Turma')).toBeNull();
+
+    await user.selectOptions(screen.getByLabelText('Aluno'), '12');
+    expect(screen.getByLabelText('Turma')).toBeTruthy();
+    expect(screen.getByLabelText('Data de início')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Cancelar' }).className).toContain(
+      'border-panel-outline',
+    );
+  });
+
   it('creates one enrollment with the selected class and date-only value', async () => {
     const user = userEvent.setup();
     vi.mocked(lifecycle.startAcademicEnrollment).mockResolvedValue({ enrollmentId: '77' });
     renderPage();
     await user.type(screen.getByLabelText('Buscar aluno sem matrícula ativa'), 'Ana');
-    await user.click(screen.getByRole('button', { name: 'Buscar alunos' }));
+    await user.click(screen.getByRole('button', { name: 'Buscar' }));
     await user.selectOptions(await screen.findByLabelText('Aluno'), '12');
     await user.selectOptions(screen.getByLabelText('Turma'), '44');
     fireEvent.change(screen.getByLabelText('Data de início'), { target: { value: '2026-02-01' } });
@@ -80,7 +103,7 @@ describe('existing-student enrollment', () => {
     );
     renderPage();
     await user.type(screen.getByLabelText('Buscar aluno sem matrícula ativa'), 'Ana');
-    await user.click(screen.getByRole('button', { name: 'Buscar alunos' }));
+    await user.click(screen.getByRole('button', { name: 'Buscar' }));
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).not.toContain('internal database diagnostic');
@@ -117,7 +140,7 @@ describe('existing-student enrollment', () => {
     vi.mocked(lifecycle.confirmAcademicEnrollment).mockResolvedValue({ enrollmentId: '77' });
     renderPage();
     await user.type(screen.getByLabelText('Buscar aluno sem matrícula ativa'), 'Ana');
-    await user.click(screen.getByRole('button', { name: 'Buscar alunos' }));
+    await user.click(screen.getByRole('button', { name: 'Buscar' }));
     await user.selectOptions(await screen.findByLabelText('Aluno'), '12');
     await user.selectOptions(screen.getByLabelText('Turma'), '44');
     fireEvent.change(screen.getByLabelText('Data de início'), { target: { value: '2026-02-01' } });
@@ -159,7 +182,7 @@ describe('existing-student enrollment', () => {
     });
     renderPage();
     await user.type(screen.getByLabelText('Buscar aluno sem matrícula ativa'), 'Ana');
-    await user.click(screen.getByRole('button', { name: 'Buscar alunos' }));
+    await user.click(screen.getByRole('button', { name: 'Buscar' }));
     await user.selectOptions(await screen.findByLabelText('Aluno'), '12');
     await user.selectOptions(screen.getByLabelText('Turma'), '44');
     fireEvent.change(screen.getByLabelText('Data de início'), {

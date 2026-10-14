@@ -174,7 +174,9 @@ describe('toApiRequestError', () => {
     expect(error.status).toBeUndefined();
     expect(error.problem).toBeUndefined();
     expect(getApiProblemPresentation(error)).toEqual({ message: undefined, fieldErrors: [] });
-    expect(error.message).toBe('Não foi possível conectar à API. Tente novamente mais tarde.');
+    expect(error.message).toBe(
+      'Não foi possível concluir a ação agora. Tente novamente em instantes.',
+    );
   });
 
   it.each([
@@ -248,7 +250,7 @@ describe('toApiRequestError', () => {
     expect(getApiProblemPresentation(error)).toEqual({ message: undefined, fieldErrors: [] });
   });
 
-  it('presents API text verbatim while rendering markup-looking text as text', () => {
+  it('filters credential-like API text while rendering markup-looking text as text', () => {
     const markup = '<img src=x onerror=alert(1)>';
     const markupError = toApiRequestError(makeAxiosError(makeProblem({ detail: markup })));
     const tokenError = toApiRequestError(
@@ -256,7 +258,7 @@ describe('toApiRequestError', () => {
     );
 
     expect(getApiProblemPresentation(markupError).message).toBe(markup);
-    expect(getApiProblemPresentation(tokenError).message).toBe(`Invalid token ${'a'.repeat(40)}`);
+    expect(getApiProblemPresentation(tokenError).message).toBe('Conteúdo não processável');
   });
 
   it('presents API detail and field messages even when they repeat submitted values', () => {
@@ -284,6 +286,12 @@ describe('toApiRequestError', () => {
           source: { in: 'body', pointer: '/token' },
         },
       ],
+    });
+    expect(
+      getApiProblemPresentation(error, ['local-only-password', 'synthetic-reset-token']),
+    ).toEqual({
+      message: 'Conteúdo não processável',
+      fieldErrors: [],
     });
   });
 

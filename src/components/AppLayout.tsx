@@ -87,7 +87,7 @@ export function AppLayout() {
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:px-6 lg:py-8">
         <nav
           aria-label="Navegação administrativa"
-          className="panel-surface flex gap-2 rounded-2xl bg-surface p-3 lg:flex-col"
+          className="panel-surface flex gap-2 rounded-2xl bg-surface p-3 lg:min-h-[36rem] lg:flex-col"
         >
           <NavLink
             end
@@ -169,14 +169,6 @@ export function AppLayout() {
             </svg>
             Estrutura acadêmica
           </Link>
-          <NavLink
-            to="/admin/matriculas/nova"
-            className={({ isActive }) =>
-              `inline-flex items-center gap-2 ${linkClass({ isActive })}`
-            }
-          >
-            Matrículas
-          </NavLink>
         </nav>
         <main className="min-w-0">
           {errorMessage && (

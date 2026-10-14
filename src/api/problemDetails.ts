@@ -40,7 +40,7 @@ export class ApiRequestError extends Error {
   constructor({ status, problem }: ApiRequestErrorOptions) {
     super(
       status === undefined
-        ? 'Não foi possível conectar à API. Tente novamente mais tarde.'
+        ? 'Não foi possível concluir a ação agora. Tente novamente em instantes.'
         : GENERIC_API_ERROR_MESSAGE,
     );
     this.name = 'ApiRequestError';
@@ -54,6 +54,10 @@ type AuthenticationRequiredListener = () => void;
 const authenticationRequiredListeners = new Set<AuthenticationRequiredListener>();
 const problemMediaType = 'application/problem+json';
 const problemCodePattern = /^[A-Z][A-Z0-9_]{0,63}$/;
+const credentialAssignmentPattern =
+  /\b(?:token|password|senha|secret|credential|authorization|api[_ -]?key)\b\s*[:=]\s*\S+/i;
+const jwtPattern = /\beyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\b/;
+const opaqueTokenPattern = /(?:^|[^A-Za-z0-9_-])[A-Za-z0-9_-]{32,}(?:$|[^A-Za-z0-9_-])/;
 
 export function isAuthenticationRequiredError(error: unknown): boolean {
   return (
@@ -109,7 +113,12 @@ function isWellFormedPublicString(value: unknown): value is string {
 }
 
 function isSafePublicText(value: unknown): value is string {
-  return isWellFormedPublicString(value);
+  return (
+    isWellFormedPublicString(value) &&
+    !credentialAssignmentPattern.test(value) &&
+    !jwtPattern.test(value) &&
+    !opaqueTokenPattern.test(value)
+  );
 }
 
 function isUriReference(value: unknown): value is string {
@@ -289,7 +298,18 @@ function readProblemDetails(
   };
 }
 
-export function getApiProblemPresentation(error: unknown): ApiProblemPresentation {
+function isSafeForThisRequest(text: string, sensitiveValues: readonly string[]): boolean {
+  const comparableText = text.toLocaleLowerCase();
+  return sensitiveValues.every((value) => {
+    const comparableValue = value.trim().toLocaleLowerCase();
+    return comparableValue === '' || !comparableText.includes(comparableValue);
+  });
+}
+
+export function getApiProblemPresentation(
+  error: unknown,
+  sensitiveValues: readonly string[] = [],
+): ApiProblemPresentation {
   if (!(error instanceof ApiRequestError) || error.problem === undefined) {
     return { message: undefined, fieldErrors: [] };
   }
@@ -297,13 +317,19 @@ export function getApiProblemPresentation(error: unknown): ApiProblemPresentatio
   const { problem } = error;
   const detail = isSafePublicText(problem.detail) ? problem.detail : undefined;
   const title = isSafePublicText(problem.title) ? problem.title : undefined;
-  const message = detail ?? title;
+  const message =
+    detail !== undefined && isSafeForThisRequest(detail, sensitiveValues)
+      ? detail
+      : title !== undefined && isSafeForThisRequest(title, sensitiveValues)
+        ? title
+        : undefined;
   const fieldErrors = (Array.isArray(problem.errors) ? problem.errors : []).flatMap((candidate) => {
     if (
       !isRecord(candidate) ||
       !hasOnlyKeys(candidate, ['code', 'detail', 'source']) ||
       !isValidProblemCode(candidate.code) ||
-      !isSafePublicText(candidate.detail)
+      !isSafePublicText(candidate.detail) ||
+      !isSafeForThisRequest(candidate.detail, sensitiveValues)
     ) {
       return [];
     }
@@ -313,6 +339,37 @@ export function getApiProblemPresentation(error: unknown): ApiProblemPresentatio
   });
 
   return { message, fieldErrors };
+}
+
+export function getApiProblemPresentationForSubmittedValues(
+  error: unknown,
+  submittedSensitiveValues: readonly string[],
+): ApiProblemPresentation {
+  const presentation = getApiProblemPresentation(error);
+  const safeTitle =
+    error instanceof ApiRequestError &&
+    isSafePublicText(error.problem?.title) &&
+    !containsSubmittedValue(error.problem.title, submittedSensitiveValues)
+      ? error.problem.title
+      : GENERIC_API_ERROR_MESSAGE;
+  const sanitize = (message: string) =>
+    containsSubmittedValue(message, submittedSensitiveValues) ? safeTitle : message;
+
+  return {
+    message: presentation.message === undefined ? undefined : sanitize(presentation.message),
+    fieldErrors: presentation.fieldErrors.map((fieldError) => ({
+      ...fieldError,
+      detail: sanitize(fieldError.detail),
+    })),
+  };
+}
+
+function containsSubmittedValue(message: string, submittedValues: readonly string[]): boolean {
+  const normalizedMessage = message.toLocaleLowerCase();
+  return submittedValues.some((value) => {
+    if (value.trim().length < 3) return false;
+    return normalizedMessage.includes(value.toLocaleLowerCase());
+  });
 }
 
 export type AuthProblemField = 'email' | 'password' | 'token';

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import type { AdminClass, AdminSubjectOption } from '../../api/adminAcademicCatalog';
 import {
@@ -16,6 +16,14 @@ import {
 import { civilDateLabel, accountErrorMessage } from '../adminAccounts/accountUi';
 import { ClassOfferManagement } from './ClassOfferManagement';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { CenteredSubmitButton } from '../../components/CenteredSubmitButton';
+import { SelectField } from '../../components/SelectField';
+import { AcademicPageLayout } from './AcademicPageLayout';
+import {
+  dangerButtonClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from './academicButtonStyles';
 import {
   closeAcademicClass,
   createAcademicClassWithClosures,
@@ -24,52 +32,8 @@ import {
 
 const PAGE_SIZE = 20;
 const CLASS_SERIES_OPTIONS = [1, 2, 3] as const;
-const primaryButton =
-  'inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70';
-const secondaryButton =
-  'inline-flex min-h-11 items-center justify-center rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const fieldClass =
   'min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2';
-
-function AcademicPage({
-  title,
-  description,
-  actions,
-  children,
-}: {
-  readonly title: string;
-  readonly description: string;
-  readonly actions?: ReactNode;
-  readonly children: ReactNode;
-}) {
-  return (
-    <section className="space-y-6">
-      <header className="space-y-2">
-        <p className="text-label-large font-semibold uppercase tracking-wide text-primary">
-          Estrutura acadêmica
-        </p>
-        <h1 className="text-headline-medium font-semibold text-on-surface">{title}</h1>
-        <p className="max-w-3xl text-body-large leading-6 text-muted">{description}</p>
-        <nav aria-label="Seções da estrutura acadêmica" className="flex flex-wrap gap-4 pt-2">
-          <Link
-            className="text-label-large font-medium text-primary underline-offset-4 hover:underline"
-            to="/admin/estrutura/materias"
-          >
-            Matérias
-          </Link>
-          <Link
-            className="text-label-large font-medium text-primary underline-offset-4 hover:underline"
-            to="/admin/estrutura/turmas"
-          >
-            Turmas
-          </Link>
-        </nav>
-      </header>
-      {actions && <div className="flex flex-wrap gap-3">{actions}</div>}
-      {children}
-    </section>
-  );
-}
 
 function LoadError({ message, retry }: { readonly message: string; readonly retry: () => void }) {
   return (
@@ -77,7 +41,7 @@ function LoadError({ message, retry }: { readonly message: string; readonly retr
       <p aria-live="assertive" className="text-body-medium text-danger" role="alert">
         {message}
       </p>
-      <button className={secondaryButton} onClick={retry} type="button">
+      <button className={secondaryButtonClass} onClick={retry} type="button">
         Tentar novamente
       </button>
     </div>
@@ -97,7 +61,7 @@ function Pager({
   return (
     <nav aria-label="Paginação" className="flex items-center justify-between gap-3">
       <button
-        className={secondaryButton}
+        className={secondaryButtonClass}
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
         type="button"
@@ -108,7 +72,7 @@ function Pager({
         Página {page} de {totalPages}
       </p>
       <button
-        className={secondaryButton}
+        className={secondaryButtonClass}
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
         type="button"
@@ -162,19 +126,16 @@ export function AcademicSubjectListPage() {
   }
 
   return (
-    <AcademicPage
+    <AcademicPageLayout
       actions={
-        <Link className={primaryButton} to="/admin/estrutura/materias/nova">
+        <Link className={primaryButtonClass} to="/admin/estrutura/materias/nova">
           Cadastrar matéria
         </Link>
       }
       description="Consulte, pesquise, cadastre e edite as matérias disponíveis."
       title="Matérias"
     >
-      <form
-        className="panel-surface flex flex-col gap-3 rounded-2xl bg-surface p-4 sm:flex-row"
-        onSubmit={submitSearch}
-      >
+      <form className="panel-surface space-y-3 rounded-2xl bg-surface p-4" onSubmit={submitSearch}>
         <div className="min-w-0 flex-1 space-y-2">
           <label className="text-label-large font-medium text-on-surface" htmlFor="subject-search">
             Buscar por nome
@@ -187,9 +148,9 @@ export function AcademicSubjectListPage() {
             value={search}
           />
         </div>
-        <button className={secondaryButton} disabled={loading} type="submit">
+        <CenteredSubmitButton disabled={loading} icon="search">
           Buscar
-        </button>
+        </CenteredSubmitButton>
       </form>
       {loading ? (
         <p aria-live="polite" className="py-8 text-center text-body-large text-muted" role="status">
@@ -219,13 +180,13 @@ export function AcademicSubjectListPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link
-                    className={secondaryButton}
+                    className={secondaryButtonClass}
                     to={`/admin/estrutura/materias/${encodeURIComponent(subject.subjectId)}`}
                   >
                     Ver matéria
                   </Link>
                   <Link
-                    className={primaryButton}
+                    className={primaryButtonClass}
                     to={`/admin/estrutura/materias/${encodeURIComponent(subject.subjectId)}/editar`}
                   >
                     Editar
@@ -237,7 +198,7 @@ export function AcademicSubjectListPage() {
           <Pager onPageChange={(next) => void refresh(next)} page={page} totalPages={totalPages} />
         </>
       )}
-    </AcademicPage>
+    </AcademicPageLayout>
   );
 }
 
@@ -267,23 +228,23 @@ export function AcademicSubjectDetailPage() {
   }, [subjectId]);
 
   return (
-    <AcademicPage
+    <AcademicPageLayout
       actions={
-        <>
-          <Link className={secondaryButton} to="/admin/estrutura/materias">
+        <div className="flex w-full items-center justify-between gap-3">
+          <Link className={secondaryButtonClass} to="/admin/estrutura/materias">
             Voltar à lista
           </Link>
           {subjectId && (
             <Link
-              className={primaryButton}
+              className={primaryButtonClass}
               to={`/admin/estrutura/materias/${encodeURIComponent(subjectId)}/editar`}
             >
               Editar matéria
             </Link>
           )}
-        </>
+        </div>
       }
-      description="Consulte os dados da matéria retornados pela API."
+      description="Veja os detalhes desta matéria."
       title={subject?.name ?? 'Detalhes da matéria'}
     >
       {loading ? (
@@ -294,10 +255,6 @@ export function AcademicSubjectDetailPage() {
         <LoadError message={errorMessage} retry={() => void refresh()} />
       ) : subject ? (
         <dl className="panel-surface grid gap-4 rounded-2xl bg-surface p-5 sm:grid-cols-2">
-          <div>
-            <dt className="text-label-large font-medium text-muted">Identificador</dt>
-            <dd className="text-body-large text-on-surface">{subject.subjectId}</dd>
-          </div>
           <div>
             <dt className="text-label-large font-medium text-muted">Nome</dt>
             <dd className="text-body-large text-on-surface">{subject.name}</dd>
@@ -310,7 +267,7 @@ export function AcademicSubjectDetailPage() {
           </div>
         </dl>
       ) : null}
-    </AcademicPage>
+    </AcademicPageLayout>
   );
 }
 
@@ -376,7 +333,7 @@ export function AcademicSubjectFormPage() {
   }
 
   return (
-    <AcademicPage
+    <AcademicPageLayout
       description={
         editing
           ? 'Atualize os dados cadastrais da matéria.'
@@ -434,19 +391,19 @@ export function AcademicSubjectFormPage() {
           </div>
           <div className="flex flex-wrap gap-3">
             <button
-              className={primaryButton}
+              className={primaryButtonClass}
               disabled={saving || (editing && !subjectLoaded)}
               type="submit"
             >
               {saving ? 'Salvando…' : 'Salvar matéria'}
             </button>
-            <Link className={secondaryButton} to="/admin/estrutura/materias">
+            <Link className={secondaryButtonClass} to="/admin/estrutura/materias">
               Cancelar
             </Link>
           </div>
         </form>
       )}
-    </AcademicPage>
+    </AcademicPageLayout>
   );
 }
 
@@ -504,16 +461,22 @@ export function AcademicClassListPage() {
   }, []);
 
   return (
-    <AcademicPage
+    <AcademicPageLayout
       actions={
-        <Link className={primaryButton} to="/admin/estrutura/turmas/nova">
+        <Link className={primaryButtonClass} to="/admin/estrutura/turmas/nova">
           Cadastrar turma
         </Link>
       }
       description="Consulte turmas por ano letivo e abra os dados da turma para edição."
       title="Turmas"
     >
-      <div className="panel-surface flex flex-col gap-3 rounded-2xl bg-surface p-4 sm:flex-row sm:items-end">
+      <form
+        className="panel-surface space-y-3 rounded-2xl bg-surface p-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void refresh(1);
+        }}
+      >
         <div className="min-w-0 flex-1 space-y-2">
           <label
             className="text-label-large font-medium text-on-surface"
@@ -521,29 +484,23 @@ export function AcademicClassListPage() {
           >
             Ano letivo
           </label>
-          <select
-            className={fieldClass}
+          <SelectField
             id="class-school-year"
             onChange={(event) => setSchoolYear(event.currentTarget.value)}
             value={schoolYear}
           >
-            <option value="">Padrão da API</option>
+            <option value="">Ano letivo atual</option>
             {schoolYears.map((year) => (
               <option key={year} value={year}>
                 {year}
               </option>
             ))}
-          </select>
+          </SelectField>
         </div>
-        <button
-          className={secondaryButton}
-          disabled={loading}
-          onClick={() => void refresh(1)}
-          type="button"
-        >
-          Aplicar
-        </button>
-      </div>
+        <CenteredSubmitButton disabled={loading} icon="search">
+          Buscar
+        </CenteredSubmitButton>
+      </form>
       {loading ? (
         <p aria-live="polite" className="py-8 text-center text-body-large text-muted" role="status">
           Carregando turmas…
@@ -570,13 +527,13 @@ export function AcademicClassListPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link
-                    className={secondaryButton}
+                    className={secondaryButtonClass}
                     to={`/admin/estrutura/turmas/${encodeURIComponent(schoolClass.classId)}`}
                   >
                     Ver turma
                   </Link>
                   <Link
-                    className={primaryButton}
+                    className={primaryButtonClass}
                     to={`/admin/estrutura/turmas/${encodeURIComponent(schoolClass.classId)}/editar`}
                   >
                     Editar
@@ -588,7 +545,7 @@ export function AcademicClassListPage() {
           <Pager onPageChange={(next) => void refresh(next)} page={page} totalPages={totalPages} />
         </>
       )}
-    </AcademicPage>
+    </AcademicPageLayout>
   );
 }
 
@@ -645,33 +602,35 @@ export function AcademicClassDetailPage() {
   }, [classId]);
 
   return (
-    <AcademicPage
+    <AcademicPageLayout
       actions={
-        <>
-          <Link className={secondaryButton} to="/admin/estrutura/turmas">
+        <div className="flex w-full items-center justify-between gap-3">
+          <Link className={secondaryButtonClass} to="/admin/estrutura/turmas">
             Voltar à lista
           </Link>
-          {classId && (
-            <Link
-              className={primaryButton}
-              to={`/admin/estrutura/turmas/${encodeURIComponent(classId)}/editar`}
-            >
-              Editar turma
-            </Link>
-          )}
-          {classId && !closed && (
-            <button
-              className={secondaryButton}
-              disabled={!etag || closing}
-              onClick={() => setConfirmClose(true)}
-              type="button"
-            >
-              Encerrar turma
-            </button>
-          )}
-        </>
+          <div className="flex flex-wrap justify-end gap-3">
+            {classId && (
+              <Link
+                className={primaryButtonClass}
+                to={`/admin/estrutura/turmas/${encodeURIComponent(classId)}/editar`}
+              >
+                Editar turma
+              </Link>
+            )}
+            {classId && !closed && (
+              <button
+                className={dangerButtonClass}
+                disabled={!etag || closing}
+                onClick={() => setConfirmClose(true)}
+                type="button"
+              >
+                Encerrar turma
+              </button>
+            )}
+          </div>
+        </div>
       }
-      description="Consulte os dados da turma retornados pela API."
+      description="Veja os detalhes desta turma."
       title={
         schoolClass
           ? `${schoolClass.series}ª série — ${schoolClass.schoolYear}`
@@ -687,10 +646,6 @@ export function AcademicClassDetailPage() {
       ) : schoolClass ? (
         <>
           <dl className="panel-surface grid gap-4 rounded-2xl bg-surface p-5 sm:grid-cols-2">
-            <div>
-              <dt className="text-label-large font-medium text-muted">Identificador</dt>
-              <dd className="text-body-large text-on-surface">{schoolClass.classId}</dd>
-            </div>
             <div>
               <dt className="text-label-large font-medium text-muted">Série</dt>
               <dd className="text-body-large text-on-surface">{schoolClass.series}ª</dd>
@@ -712,27 +667,27 @@ export function AcademicClassDetailPage() {
               className="rounded-lg bg-surface p-4 text-body-medium text-muted"
               role="status"
             >
-              Solicitação de encerramento concluída. O estado de elegibilidade continua sob
-              autoridade da API.
+              Turma encerrada. Ela não aceitará novas matrículas nem alterações.
             </p>
           )}
           {classId && <ClassOfferManagement classId={classId} />}
           {confirmClose && (
             <ConfirmDialog
               confirmLabel="Encerrar turma"
+              confirmTone="danger"
               onCancel={() => setConfirmClose(false)}
               onConfirm={() => void confirmClassClosure()}
               pending={closing}
               pendingLabel="Encerrando…"
               title="Encerrar esta turma?"
             >
-              A turma deixará de aceitar alterações e novas matrículas conforme as regras da API.
-              Essa ação não pode ser desfeita nesta tela.
+              A turma deixará de aceitar alterações e novas matrículas. Essa ação não pode ser
+              desfeita nesta tela.
             </ConfirmDialog>
           )}
         </>
       ) : null}
-    </AcademicPage>
+    </AcademicPageLayout>
   );
 }
 
@@ -845,7 +800,7 @@ export function AcademicClassFormPage() {
   }
 
   return (
-    <AcademicPage
+    <AcademicPageLayout
       description={
         editing
           ? 'Atualize a série e o ano letivo da turma.'
@@ -876,8 +831,7 @@ export function AcademicClassFormPage() {
             <label className="text-label-large font-medium text-on-surface" htmlFor="class-series">
               Série
             </label>
-            <select
-              className={fieldClass}
+            <SelectField
               id="class-series"
               onChange={(event) => {
                 setSeries(event.currentTarget.value);
@@ -890,7 +844,7 @@ export function AcademicClassFormPage() {
                   {value}ª série
                 </option>
               ))}
-            </select>
+            </SelectField>
           </div>
           <div className="space-y-2">
             <label
@@ -917,9 +871,6 @@ export function AcademicClassFormPage() {
                 <option key={year} value={year} />
               ))}
             </datalist>
-            <p className="text-body-small text-muted">
-              Anos existentes são sugeridos; o valor informado é validado pela API.
-            </p>
           </div>
           {editing ? (
             <div className="space-y-2">
@@ -948,10 +899,14 @@ export function AcademicClassFormPage() {
             </div>
           )}
           <div className="flex flex-wrap gap-3">
-            <button className={primaryButton} disabled={saving || (editing && !etag)} type="submit">
+            <button
+              className={primaryButtonClass}
+              disabled={saving || (editing && !etag)}
+              type="submit"
+            >
               {saving ? 'Salvando…' : 'Salvar turma'}
             </button>
-            <Link className={secondaryButton} to="/admin/estrutura/turmas">
+            <Link className={secondaryButtonClass} to="/admin/estrutura/turmas">
               Cancelar
             </Link>
           </div>
@@ -978,8 +933,8 @@ export function AcademicClassFormPage() {
                   Turmas do ano anterior para encerrar, se aplicável
                 </legend>
                 <p className="text-body-small text-muted">
-                  A API valida elegibilidade. A lista não indica se cada turma está aberta ou pode
-                  ser encerrada.
+                  Nem todas as turmas da lista podem ser encerradas. Se alguma não puder, a nova
+                  turma não será criada.
                 </p>
                 {candidateClasses
                   .filter((candidate) => candidate.series === Number(series))
@@ -1004,6 +959,6 @@ export function AcademicClassFormPage() {
           </div>
         </ConfirmDialog>
       )}
-    </AcademicPage>
+    </AcademicPageLayout>
   );
 }

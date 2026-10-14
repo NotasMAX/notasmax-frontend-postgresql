@@ -261,13 +261,14 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
         },
       });
     } catch (error) {
-      const parsed = getAccountFormErrors(error, visibleFields(profile));
+      const sensitiveValues = [nextEmail, currentPassword, account?.email ?? ''];
+      const parsed = getAccountFormErrors(error, visibleFields(profile), sensitiveValues);
       setErrors({
         ...parsed,
         messages:
           parsed.messages.length > 0
             ? parsed.messages
-            : [accountErrorMessage(error)],
+            : [accountErrorMessage(error, sensitiveValues)],
       });
     } finally {
       setSaving(false);

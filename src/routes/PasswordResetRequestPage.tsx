@@ -26,7 +26,7 @@ export function PasswordResetRequestPage() {
       await auth.requestPasswordReset(email.trim());
       setMessage(genericConfirmation);
     } catch (error) {
-      const errors = getAuthFormErrors(error, ['email']);
+      const errors = getAuthFormErrors(error, ['email'], [email.trim()]);
       setApiErrors(
         hasAuthFormErrors(errors)
           ? errors
