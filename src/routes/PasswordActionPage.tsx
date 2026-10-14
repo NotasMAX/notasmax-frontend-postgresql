@@ -127,7 +127,7 @@ export function PasswordActionPage({
       navigate('/', { replace: true, state: { message: content.successMessage } });
     } catch (error) {
       if (error instanceof ApiRequestError && error.problem?.code === content.invalidCode) {
-        const presentation = getApiProblemPresentation(error, [token, password, confirmation]);
+        const presentation = getApiProblemPresentation(error);
         setInvalidTokenMessage(
           presentation.message ?? presentation.fieldErrors[0]?.detail ?? GENERIC_API_ERROR_MESSAGE,
         );
@@ -137,7 +137,7 @@ export function PasswordActionPage({
         setConfirmation('');
         setInvalidToken(true);
       } else {
-        const errors = getAuthFormErrors(error, ['password'], [token, password, confirmation]);
+        const errors = getAuthFormErrors(error, ['password']);
         setApiErrors(
           hasAuthFormErrors(errors)
             ? errors

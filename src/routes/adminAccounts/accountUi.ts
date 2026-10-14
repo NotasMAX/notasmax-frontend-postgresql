@@ -151,9 +151,8 @@ function accountFieldForProblem(error: ApiProblemFieldError): AccountFormField |
 export function getAccountFormErrors(
   error: unknown,
   visibleFields: readonly AccountFormField[],
-  sensitiveValues: readonly string[],
 ): AccountFormErrors {
-  const presentation = getApiProblemPresentation(error, sensitiveValues);
+  const presentation = getApiProblemPresentation(error);
   const fields: Record<AccountFormField, string[]> = {
     name: [],
     email: [],
@@ -174,9 +173,6 @@ export function getAccountFormErrors(
   return { messages, fields };
 }
 
-export function accountErrorMessage(
-  error: unknown,
-  sensitiveValues: readonly string[] = [],
-): string {
-  return getApiProblemPresentation(error, sensitiveValues).message ?? GENERIC_API_ERROR_MESSAGE;
+export function accountErrorMessage(error: unknown): string {
+  return getApiProblemPresentation(error).message ?? GENERIC_API_ERROR_MESSAGE;
 }

@@ -58,7 +58,7 @@ export function LoginPage() {
       }
     } catch (error) {
       setPassword('');
-      const errors = getAuthFormErrors(error, ['email', 'password'], [email.trim(), password]);
+      const errors = getAuthFormErrors(error, ['email', 'password']);
       setApiErrors(
         hasAuthFormErrors(errors)
           ? errors

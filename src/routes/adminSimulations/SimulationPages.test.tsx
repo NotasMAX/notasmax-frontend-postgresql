@@ -34,7 +34,25 @@ vi.mock('../../api/adminSimulations', () => ({
   updateSimulation: vi.fn(),
 }));
 
-const openClass: AdminClassOption = { classId: '44', series: 9, schoolYear: 2026, isClosed: false };
+const currentSchoolYear = new Date().getFullYear();
+const openClass: AdminClassOption = {
+  classId: '44',
+  series: 9,
+  schoolYear: currentSchoolYear,
+  isClosed: false,
+};
+const secondCurrentClass: AdminClassOption = {
+  classId: '46',
+  series: 10,
+  schoolYear: currentSchoolYear,
+  isClosed: false,
+};
+const previousYearClass: AdminClassOption = {
+  classId: '45',
+  series: 8,
+  schoolYear: currentSchoolYear - 1,
+  isClosed: true,
+};
 const closedClass: AdminClassOption = { ...openClass, isClosed: true };
 const offered = [
   { subjectId: '7', name: 'Matemática', description: null },
@@ -108,7 +126,10 @@ describe('NM-33 simulation screens', () => {
     renderRoutes('/admin/simulados');
 
     await user.click(await screen.findByRole('link', { name: 'Consultar histórico' }));
-    expect(await screen.findByRole('heading', { name: /9ª série.*2026/ })).not.toBeNull();
+    expect(await screen.findByRole('heading', { name: 'Simulados' })).not.toBeNull();
+    expect(screen.getByText(`9ª série · ano letivo ${currentSchoolYear}`)).not.toBeNull();
+    expect(screen.queryByLabelText('Ano letivo')).toBeNull();
+    expect(screen.queryByLabelText('Série')).toBeNull();
     expect(await screen.findByRole('link', { name: 'Abrir detalhe' })).not.toBeNull();
     expect(screen.queryByRole('link', { name: 'Novo simulado' })).toBeNull();
     expect(screen.getByText(/consulta histórica continua disponível/)).not.toBeNull();
@@ -119,6 +140,56 @@ describe('NM-33 simulation screens', () => {
     expect(screen.queryByRole('button', { name: 'Confirmar realização' })).toBeNull();
   });
 
+  it('defaults to the current school year and shows only its series', async () => {
+    const user = userEvent.setup();
+    vi.mocked(loadAdminClasses).mockResolvedValue([
+      openClass,
+      secondCurrentClass,
+      previousYearClass,
+    ]);
+    renderRoutes('/admin/simulados');
+
+    const yearSelect = (await screen.findByLabelText('Ano letivo')) as HTMLSelectElement;
+    expect(yearSelect.value).toBe(String(currentSchoolYear));
+    expect(screen.getByText(`9ª série · ano letivo ${currentSchoolYear}`)).not.toBeNull();
+    expect(screen.getByText(`10ª série · ano letivo ${currentSchoolYear}`)).not.toBeNull();
+    expect(screen.queryByText(`8ª série · ano letivo ${currentSchoolYear - 1}`)).toBeNull();
+
+    await user.selectOptions(yearSelect, String(currentSchoolYear - 1));
+    expect(
+      await screen.findByText(`8ª série · ano letivo ${currentSchoolYear - 1}`),
+    ).not.toBeNull();
+    expect(screen.queryByText(`9ª série · ano letivo ${currentSchoolYear}`)).toBeNull();
+  });
+
+  it('removes year and series selectors from the class simulation list', async () => {
+    renderRoutes('/admin/turmas/44/simulados');
+
+    await screen.findByRole('link', { name: 'Abrir detalhe' });
+    expect(screen.queryByLabelText('Ano letivo')).toBeNull();
+    expect(screen.queryByLabelText('Série')).toBeNull();
+    expect(screen.getByText(`9ª série · ano letivo ${currentSchoolYear}`)).not.toBeNull();
+  });
+
+  it('styles the choose-another-class link as a secondary button', async () => {
+    renderRoutes('/admin/turmas/44/simulados');
+
+    const link = await screen.findByRole('link', { name: '← Escolher outra turma' });
+    expect(link.className).toContain('account-button-secondary');
+    expect(link.getAttribute('href')).toBe('/admin/simulados');
+  });
+
+  it('uses the shared blue action style and icons for simulation actions', async () => {
+    renderRoutes('/admin/turmas/44/simulados');
+
+    const createLink = await screen.findByRole('link', { name: 'Novo simulado' });
+    const detailLink = await screen.findByRole('link', { name: 'Abrir detalhe' });
+    for (const link of [createLink, detailLink]) {
+      expect(link.className).toContain('account-button-primary');
+      expect(link.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    }
+  });
+
   it('applies supported filters, keeps them while paging, resets them, and shows empty state', async () => {
     const user = userEvent.setup();
     vi.mocked(listSimulations)
@@ -127,7 +198,7 @@ describe('NM-33 simulation screens', () => {
       .mockResolvedValueOnce(page([simulation], 2, 2))
       .mockResolvedValueOnce(page([], 1, 0));
     renderRoutes('/admin/turmas/44/simulados');
-    await screen.findByRole('heading', { name: /9ª série.*2026/ });
+    await screen.findByRole('heading', { name: 'Simulados' });
     await screen.findByRole('link', { name: 'Abrir detalhe' });
     vi.mocked(listSimulations).mockClear();
 
@@ -196,7 +267,36 @@ describe('NM-33 simulation screens', () => {
         ],
       }),
     );
-    expect(await screen.findByText('Simulado nº 41 criado pela API.')).not.toBeNull();
+    expect(await screen.findByText('Simulado nº 41 criado.')).not.toBeNull();
+  });
+
+  it('shows the API weight-limit message when a subject ID overlaps its percentage', async () => {
+    const user = userEvent.setup();
+    vi.mocked(listOfferedSubjects).mockResolvedValueOnce([
+      { subjectId: '1', name: 'Matemática', description: null },
+    ]);
+    vi.mocked(createSimulation).mockRejectedValueOnce(
+      new ApiRequestError({
+        status: 409,
+        problem: {
+          type: 'about:blank',
+          title: 'Conflito',
+          status: 409,
+          detail: 'A soma dos pesos da matéria no bimestre não pode ultrapassar 100%.',
+        },
+      }),
+    );
+    renderRoutes('/admin/turmas/44/simulados/novo');
+
+    await screen.findByRole('heading', { name: 'Novo simulado' });
+    await user.selectOptions(screen.getByLabelText('Tipo'), 'objetivo');
+    await user.selectOptions(screen.getByLabelText('Bimestre'), '2');
+    fireEvent.change(screen.getByLabelText('Data agendada'), { target: { value: '2026-10-13' } });
+    await user.click(screen.getByRole('button', { name: 'Salvar simulado' }));
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'A soma dos pesos da matéria no bimestre não pode ultrapassar 100%.',
+    );
   });
 
   it('requires at least one subject and refuses a realized simulation edit route', async () => {
@@ -327,7 +427,7 @@ describe('NM-33 simulation screens', () => {
     expect(getSimulation).toHaveBeenCalledTimes(2);
   });
 
-  it('presents a safe stale ETag error, refreshes detail, and does not replay realization', async () => {
+  it('presents a clear stale-data message, refreshes detail, and does not replay realization', async () => {
     const user = userEvent.setup();
     vi.mocked(realizeSimulation).mockRejectedValueOnce(
       new ApiRequestError({
@@ -353,14 +453,51 @@ describe('NM-33 simulation screens', () => {
       }),
     );
 
-    expect(
-      await screen.findByText(
-        'O simulado foi alterado por outra pessoa. Atualize e tente novamente.',
-      ),
-    ).not.toBeNull();
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe(
+      'O simulado foi alterado por outra pessoa. Atualize e tente novamente.',
+    );
+    expect(alert.textContent).not.toMatch(/etag|api/i);
     expect(realizeSimulation).toHaveBeenCalledOnce();
     expect(realizeSimulation).toHaveBeenCalledWith('44', '12', etag);
     expect(getSimulation).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses friendly wording when the current simulation version is unavailable', async () => {
+    vi.mocked(getSimulation).mockResolvedValue({ simulation, etag: undefined });
+    renderRoutes('/admin/turmas/44/simulados/12');
+
+    await screen.findByRole('heading', { name: 'Simulado nº 3' });
+    expect((await screen.findByRole('status')).textContent).toContain(
+      'Não foi possível confirmar se os dados estão atualizados. Atualize a página antes de fazer alterações.',
+    );
+    expect(screen.queryByText(/etag|api/i)).toBeNull();
+  });
+
+  it('shows the API stale-data message when saving an edited simulation', async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateSimulation).mockRejectedValueOnce(
+      new ApiRequestError({
+        status: 412,
+        problem: {
+          type: 'about:blank',
+          title: 'Pré-condição não atendida',
+          status: 412,
+          detail: 'O simulado foi alterado por outra pessoa. Atualize e tente novamente.',
+          code: 'ETAG_MISMATCH',
+        },
+      }),
+    );
+    renderRoutes('/admin/turmas/44/simulados/12/editar');
+    await screen.findByRole('heading', { name: 'Editar simulado' });
+    await user.click(screen.getByRole('button', { name: 'Salvar simulado' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe(
+      'O simulado foi alterado por outra pessoa. Atualize e tente novamente.',
+    );
+    expect(alert.textContent).not.toMatch(/etag|api/i);
+    expect(updateSimulation).toHaveBeenCalledOnce();
   });
 
   it('sends the confirmed logical deletion once and returns to the class list after 204', async () => {
@@ -372,7 +509,18 @@ describe('NM-33 simulation screens', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Excluir simulado' }));
     expect(deleteSimulation).toHaveBeenCalledOnce();
     expect(deleteSimulation).toHaveBeenCalledWith('44', '12', etag);
-    expect(await screen.findByRole('heading', { name: /9ª série.*2026/ })).not.toBeNull();
+    expect(await screen.findByRole('heading', { name: 'Simulados' })).not.toBeNull();
+  });
+
+  it('keeps edit on the left and groups realization and deletion actions on the right', async () => {
+    renderRoutes('/admin/turmas/44/simulados/12');
+    await screen.findByRole('heading', { name: 'Simulado nº 3' });
+
+    const actions = screen.getByRole('group', { name: 'Ações do simulado' });
+    expect(actions.firstElementChild?.textContent).toContain('Editar simulado');
+    const rightActions = actions.lastElementChild;
+    expect(rightActions?.textContent).toContain('Confirmar realização');
+    expect(rightActions?.textContent).toContain('Excluir simulado');
   });
 
   it('renders safe RFC 9457 field detail text from the existing shared presenter', async () => {
@@ -418,7 +566,11 @@ describe('NM-33 simulation screens', () => {
     vi.mocked(getSimulation).mockResolvedValue({ simulation, etag });
     vi.mocked(loadAdminClasses).mockResolvedValue([closedClass]);
     renderRoutes('/admin/turmas/44/simulados/12');
-    expect(await screen.findByText(/API não aceita mutações nesta turma/)).not.toBeNull();
+    expect(
+      await screen.findByText(
+        'Esta turma está encerrada. O simulado pode ser consultado, mas não pode ser alterado.',
+      ),
+    ).not.toBeNull();
     expect(screen.queryByRole('link', { name: 'Editar simulado' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Confirmar realização' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Excluir simulado' })).toBeNull();

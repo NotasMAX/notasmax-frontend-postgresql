@@ -70,7 +70,7 @@ describe('account UI contract helpers', () => {
     expect(civilDateLabel('unknown')).toBe('unknown');
   });
 
-  it('maps validated RFC 9457 field errors and keeps API text safe', () => {
+  it('maps validated RFC 9457 field errors and preserves API messages', () => {
     const error = new ApiRequestError({
       status: 422,
       problem: {
@@ -96,11 +96,7 @@ describe('account UI contract helpers', () => {
         ],
       },
     });
-    const result = getAccountFormErrors(
-      error,
-      ['email'],
-      ['ada@example.test', 'synthetic-password'],
-    );
+    const result = getAccountFormErrors(error, ['email']);
 
     expect(result.fields.email).toEqual(['O e-mail informado é inválido.']);
     expect(result.fields.currentPassword).toEqual([]);

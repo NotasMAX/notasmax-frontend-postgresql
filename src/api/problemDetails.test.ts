@@ -214,7 +214,7 @@ describe('toApiRequestError', () => {
     expect(getApiProblemPresentation(error)).toEqual({ message: undefined, fieldErrors: [] });
   });
 
-  it('does not treat markup-looking text as HTML and rejects credential-like public text', () => {
+  it('presents API text verbatim while rendering markup-looking text as text', () => {
     const markup = '<img src=x onerror=alert(1)>';
     const markupError = toApiRequestError(makeAxiosError(makeProblem({ detail: markup })));
     const tokenError = toApiRequestError(
@@ -222,10 +222,10 @@ describe('toApiRequestError', () => {
     );
 
     expect(getApiProblemPresentation(markupError).message).toBe(markup);
-    expect(getApiProblemPresentation(tokenError).message).toBe('Conteúdo não processável');
+    expect(getApiProblemPresentation(tokenError).message).toBe(`Invalid token ${'a'.repeat(40)}`);
   });
 
-  it('does not present text that echoes submitted sensitive values', () => {
+  it('presents API detail and field messages even when they repeat submitted values', () => {
     const error = toApiRequestError(
       makeAxiosError(
         makeProblem({
@@ -241,11 +241,15 @@ describe('toApiRequestError', () => {
       ),
     );
 
-    expect(
-      getApiProblemPresentation(error, ['local-only-password', 'synthetic-reset-token']),
-    ).toEqual({
-      message: 'Conteúdo não processável',
-      fieldErrors: [],
+    expect(getApiProblemPresentation(error)).toEqual({
+      message: 'A senha local-only-password não pode ser usada.',
+      fieldErrors: [
+        {
+          code: 'INVALID_VALUE',
+          detail: 'O token synthetic-reset-token é inválido.',
+          source: { in: 'body', pointer: '/token' },
+        },
+      ],
     });
   });
 

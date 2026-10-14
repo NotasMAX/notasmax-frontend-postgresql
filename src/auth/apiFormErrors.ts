@@ -14,9 +14,8 @@ export interface AuthFormErrors {
 export function getAuthFormErrors(
   error: unknown,
   visibleFields: readonly AuthVisibleField[],
-  sensitiveValues: readonly string[],
 ): AuthFormErrors {
-  const presentation = getApiProblemPresentation(error, sensitiveValues);
+  const presentation = getApiProblemPresentation(error);
   const fields: Record<AuthVisibleField, string[]> = { email: [], password: [] };
   const messages = presentation.message === undefined ? [] : [presentation.message];
 

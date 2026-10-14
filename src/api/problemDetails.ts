@@ -53,10 +53,6 @@ type AuthenticationRequiredListener = () => void;
 const authenticationRequiredListeners = new Set<AuthenticationRequiredListener>();
 const problemMediaType = 'application/problem+json';
 const problemCodePattern = /^[A-Z][A-Z0-9_]{0,63}$/;
-const credentialAssignmentPattern =
-  /\b(?:token|password|senha|secret|credential|authorization|api[_ -]?key)\b\s*[:=]\s*\S+/i;
-const jwtPattern = /\beyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\b/;
-const opaqueTokenPattern = /(?:^|[^A-Za-z0-9_-])[A-Za-z0-9_-]{32,}(?:$|[^A-Za-z0-9_-])/;
 
 export function isAuthenticationRequiredError(error: unknown): boolean {
   return (
@@ -112,12 +108,7 @@ function isWellFormedPublicString(value: unknown): value is string {
 }
 
 function isSafePublicText(value: unknown): value is string {
-  return (
-    isWellFormedPublicString(value) &&
-    !credentialAssignmentPattern.test(value) &&
-    !jwtPattern.test(value) &&
-    !opaqueTokenPattern.test(value)
-  );
+  return isWellFormedPublicString(value);
 }
 
 function isUriReference(value: unknown): value is string {
@@ -291,18 +282,7 @@ function readProblemDetails(
   };
 }
 
-function isSafeForThisRequest(text: string, sensitiveValues: readonly string[]): boolean {
-  const comparableText = text.toLocaleLowerCase();
-  return sensitiveValues.every((value) => {
-    const comparableValue = value.trim().toLocaleLowerCase();
-    return comparableValue === '' || !comparableText.includes(comparableValue);
-  });
-}
-
-export function getApiProblemPresentation(
-  error: unknown,
-  sensitiveValues: readonly string[] = [],
-): ApiProblemPresentation {
+export function getApiProblemPresentation(error: unknown): ApiProblemPresentation {
   if (!(error instanceof ApiRequestError) || error.problem === undefined) {
     return { message: undefined, fieldErrors: [] };
   }
@@ -310,19 +290,13 @@ export function getApiProblemPresentation(
   const { problem } = error;
   const detail = isSafePublicText(problem.detail) ? problem.detail : undefined;
   const title = isSafePublicText(problem.title) ? problem.title : undefined;
-  const message =
-    detail !== undefined && isSafeForThisRequest(detail, sensitiveValues)
-      ? detail
-      : title !== undefined && isSafeForThisRequest(title, sensitiveValues)
-        ? title
-        : undefined;
+  const message = detail ?? title;
   const fieldErrors = (Array.isArray(problem.errors) ? problem.errors : []).flatMap((candidate) => {
     if (
       !isRecord(candidate) ||
       !hasOnlyKeys(candidate, ['code', 'detail', 'source']) ||
       !isValidProblemCode(candidate.code) ||
-      !isSafePublicText(candidate.detail) ||
-      !isSafeForThisRequest(candidate.detail, sensitiveValues)
+      !isSafePublicText(candidate.detail)
     ) {
       return [];
     }
