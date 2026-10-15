@@ -12,9 +12,6 @@ export function AppLayout() {
   const simulationsClassMatch = useMatch('/admin/turmas/*');
   const simulationsMatch = simulationsHomeMatch ?? simulationsClassMatch;
   const academicStructureMatch = useMatch('/admin/estrutura/*');
-  const simulationsHomeMatch = useMatch('/admin/simulados');
-  const simulationsClassMatch = useMatch('/admin/turmas/*');
-  const simulationsMatch = simulationsHomeMatch ?? simulationsClassMatch;
 
   if (auth.state.status !== 'authenticated') {
     return null;
@@ -132,25 +129,6 @@ export function AppLayout() {
               <path d="M3.5 20a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.8M17 14a5.5 5.5 0 0 1 3.5 5" />
             </svg>
             Contas
-          </Link>
-          <Link
-            aria-current={simulationsMatch ? 'page' : undefined}
-            className={`inline-flex items-center gap-2 ${linkClass({ isActive: Boolean(simulationsMatch) })}`}
-            to="/admin/simulados"
-          >
-            <svg
-              aria-hidden="true"
-              className="size-5 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="1.8"
-              viewBox="0 0 24 24"
-            >
-              <path d="M4 5h16v14H4zM8 9h8M8 13h5M8 16h3" />
-            </svg>
-            Simulados
           </Link>
           <Link
             aria-current={academicStructureMatch ? 'page' : undefined}
