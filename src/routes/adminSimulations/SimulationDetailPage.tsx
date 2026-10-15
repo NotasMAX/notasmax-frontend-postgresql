@@ -247,6 +247,14 @@ export function SimulationDetailPage() {
               </div>
             </div>
           )}
+          {simulation.realizedAt && (
+            <Link
+              className="account-button-primary inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              to={`/admin/turmas/${encodeURIComponent(classId)}/simulados/${encodeURIComponent(simulationId)}/resultados`}
+            >
+              Ver resultados
+            </Link>
+          )}
 
           <div className="panel-surface space-y-5 rounded-2xl bg-surface p-5 sm:p-6">
             <dl className="grid gap-4 sm:grid-cols-2">

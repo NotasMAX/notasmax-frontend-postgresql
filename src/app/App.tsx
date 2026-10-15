@@ -12,6 +12,8 @@ import { SimulationClassPage } from '../routes/adminSimulations/SimulationClassP
 import { SimulationDetailPage } from '../routes/adminSimulations/SimulationDetailPage';
 import { SimulationFormPage } from '../routes/adminSimulations/SimulationFormPage';
 import { SimulationListPage } from '../routes/adminSimulations/SimulationListPage';
+import { SimulationResultDetailPage } from '../routes/adminSimulations/SimulationResultDetailPage';
+import { SimulationResultsPage } from '../routes/adminSimulations/SimulationResultsPage';
 import {
   AcademicClassDetailPage,
   AcademicClassFormPage,
@@ -167,6 +169,14 @@ export function AppRoutes({ sensitiveLink, setSensitiveLink }: AppRoutesProps) {
           <Route
             path="admin/turmas/:classId/simulados/:simulationId/editar"
             element={<SimulationFormPage />}
+          />
+          <Route
+            path="admin/turmas/:classId/simulados/:simulationId/resultados"
+            element={<SimulationResultsPage />}
+          />
+          <Route
+            path="admin/turmas/:classId/simulados/:simulationId/resultados/:studentId/:subjectId"
+            element={<SimulationResultDetailPage />}
           />
           <Route
             path="admin/turmas/:classId/simulados/:simulationId"
