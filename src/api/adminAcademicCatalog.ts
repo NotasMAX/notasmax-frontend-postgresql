@@ -123,6 +123,14 @@ export async function listAdminSchoolYears(): Promise<number[]> {
   return response.data.items.map(({ schoolYear }) => schoolYear);
 }
 
+export async function loadAdminClasses(): Promise<AdminClassOption[]> {
+  const schoolYears = await listAdminSchoolYears();
+  const classesByYear = await Promise.all(
+    schoolYears.map((schoolYear) => listClassesForSchoolYear(schoolYear)),
+  );
+  return classesByYear.flat();
+}
+
 export async function getAdminClass(
   classId: string,
 ): Promise<{ schoolClass: AdminClass; etag: string }> {
@@ -176,12 +184,4 @@ export async function loadAccountFilterOptions(
   const subjects = profile === 'teacher' ? await listAllAdminSubjects() : [];
 
   return { classes, subjects };
-}
-
-export async function loadAdminClasses(): Promise<AdminClassOption[]> {
-  const yearsResponse = await apiClient.get<SchoolYearList>('/api/v1/admin/school-years');
-  const classesByYear = await Promise.all(
-    yearsResponse.data.items.map(({ schoolYear }) => listClassesForSchoolYear(schoolYear)),
-  );
-  return classesByYear.flat();
 }

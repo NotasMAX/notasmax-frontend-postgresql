@@ -1,4 +1,10 @@
-import { Link } from 'react-router';
+import { useRef, useState } from 'react';
+import { ActionLink } from '../components/ActionLink';
+import { Alert } from '../components/Alert';
+import { Badge } from '../components/Badge';
+import { Button } from '../components/Button';
+import { SelectField } from '../components/SelectField';
+import { Toast } from '../components/Toast';
 
 const colorTokens = [
   {
@@ -159,6 +165,17 @@ const surfaceTokens = [
 ] as const;
 
 export function DesignSystemGalleryPage() {
+  const [toastVisible, setToastVisible] = useState(false);
+  const toastTriggerRef = useRef<HTMLButtonElement>(null);
+  const toastContainerRef = useRef<HTMLDivElement>(null);
+
+  function dismissToastSample() {
+    if (toastContainerRef.current?.contains(document.activeElement)) {
+      toastTriggerRef.current?.focus();
+    }
+    setToastVisible(false);
+  }
+
   return (
     <main className="mx-auto w-full max-w-6xl space-y-10 px-4 py-8 text-on-surface sm:px-6 lg:py-10">
       <header className="flex flex-col gap-5 border-b border-outline pb-6 sm:flex-row sm:items-center sm:justify-between">
@@ -172,12 +189,9 @@ export function DesignSystemGalleryPage() {
             na aplicação.
           </p>
         </div>
-        <Link
-          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          to="/"
-        >
+        <ActionLink className="shrink-0" leadingIcon="arrowBack" to="/" variant="secondary">
           Voltar para entrar
-        </Link>
+        </ActionLink>
       </header>
 
       <section aria-labelledby="design-system-colors" className="space-y-4">
@@ -308,6 +322,84 @@ export function DesignSystemGalleryPage() {
             </div>
           ))}
         </dl>
+      </section>
+
+      <section aria-labelledby="design-system-actions" className="space-y-4">
+        <div>
+          <h2 className="text-title-large font-semibold" id="design-system-actions">
+            Ações e estados
+          </h2>
+          <p className="mt-1 text-body-medium text-muted">
+            Variantes reutilizáveis com altura, foco, cores e ícones coerentes.
+          </p>
+        </div>
+        <div className="panel-surface space-y-4 bg-surface p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button leadingIcon="search">Buscar</Button>
+            <Button leadingIcon="edit" variant="secondary">
+              Editar
+            </Button>
+            <Button leadingIcon="delete" variant="danger">
+              Remover
+            </Button>
+            <ActionLink leadingIcon="arrowBack" to="/" variant="text">
+              Voltar
+            </ActionLink>
+            <Button aria-label="Fechar" leadingIcon="close" size="icon" variant="text" />
+            <Button disabled>Indisponível</Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge tone="positive">Ativa</Badge>
+            <Badge tone="warning">Aguardando</Badge>
+            <Badge tone="danger">Erro</Badge>
+            <label className="min-w-56 flex-1 space-y-1 text-label-large font-medium text-on-surface">
+              Seletor
+              <SelectField aria-label="Seletor de exemplo" defaultValue="option-1">
+                <option value="option-1">Opção disponível</option>
+              </SelectField>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="design-system-feedback" className="space-y-4">
+        <div>
+          <h2 className="text-title-large font-semibold" id="design-system-feedback">
+            Avisos e notificações
+          </h2>
+          <p className="mt-1 text-body-medium text-muted">
+            Exemplos seguros de mensagens: nenhum cadastro ou dado é alterado.
+          </p>
+        </div>
+        <div className="panel-surface space-y-4 bg-surface p-4">
+          <Alert tone="info">Mensagem informativa de exemplo.</Alert>
+          <Alert tone="danger">Alerta de exemplo. Nenhuma ação foi executada.</Alert>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-body-medium text-muted">
+              A notificação permanece visível até ser fechada.
+            </p>
+            <Button
+              leadingIcon="info"
+              onClick={() => setToastVisible(true)}
+              ref={toastTriggerRef}
+              type="button"
+              variant="secondary"
+            >
+              Exibir notificação de exemplo
+            </Button>
+          </div>
+          {toastVisible && (
+            <div ref={toastContainerRef}>
+              <Toast
+                durationMs={0}
+                message="Notificação de exemplo. Nenhum dado foi alterado."
+                onDismiss={dismissToastSample}
+                position="bottom-center"
+                tone="info"
+              />
+            </div>
+          )}
+        </div>
       </section>
 
       <section aria-labelledby="design-system-layouts" className="space-y-4">

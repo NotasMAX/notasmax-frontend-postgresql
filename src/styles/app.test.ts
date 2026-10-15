@@ -100,17 +100,22 @@ describe('approved visual tokens', () => {
     expect(stylesheet.match(/--shadow-panel\s*:/gi)).toHaveLength(1);
     expect(panelSurfaceRule).toMatch(/border:\s*1px solid var\(--color-panel-outline\)/);
     expect(panelSurfaceRule).toMatch(/box-shadow:\s*var\(--shadow-panel\)/);
-    expect(
-      stylesheet.match(/\.account-button-primary\s*\{[^}]*box-shadow:\s*var\(--shadow-panel\)/s),
-    ).not.toBeNull();
-    expect(
-      stylesheet.match(/\.account-button-secondary\s*\{[^}]*box-shadow:\s*var\(--shadow-panel\)/s),
-    ).not.toBeNull();
+    expect(panelSurfaceRule).toMatch(/border-radius:\s*var\(--radius-card\)/);
+    expect(stylesheet).toMatch(
+      /\.dialog-surface\s*\{[^}]*border-radius:\s*var\(--radius-dialog\)/s,
+    );
+    expect(stylesheet).not.toMatch(/\.account-button-primary\s*\{[^}]*box-shadow:/s);
+    expect(stylesheet).not.toMatch(/\.account-button-secondary\s*\{[^}]*box-shadow:/s);
+    expect(stylesheet).toContain('--radius-control: 0.5rem;');
+    expect(stylesheet).toContain('--radius-card: 1rem;');
+    expect(stylesheet).toContain('--radius-dialog: 1.25rem;');
 
     expect(authPageLayout).toContain('auth-panel panel-surface rounded-2xl p-5 sm:p-8');
     expect(appLayout).toContain(
-      'panel-surface flex gap-2 rounded-2xl bg-surface p-3 lg:min-h-[36rem] lg:flex-col',
+      'panel-surface hidden min-h-[36rem] items-stretch gap-2 bg-surface p-3 lg:flex lg:flex-col',
     );
+    expect(appLayout).toContain('id="compact-admin-navigation"');
+    expect(appLayout).toContain('aria-expanded={navigationOpen}');
     expect(notFoundPage).toContain(
       'panel-surface flex w-full max-w-xl flex-col items-center gap-5 rounded-2xl bg-surface',
     );
@@ -122,10 +127,9 @@ describe('approved visual tokens', () => {
       'border border-outline bg-surface px-3 text-body-large text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
     );
     expect(loginPage).not.toContain('panel-surface');
-    expect(appLayout).toMatch(
-      /className="account-button-secondary[^"]*border border-panel-outline[^"]*bg-surface[^"]*"/,
-    );
-    expect(appLayout).toContain('className="mb-6 rounded-lg border border-danger bg-error-surface');
+    expect(appLayout).toContain('<Button');
+    expect(appLayout).toContain('variant="secondary"');
+    expect(appLayout).toContain('<Alert className="mb-6" tone="danger">');
     expect(appLayout).not.toMatch(/<(?:button|p)[^>]*panel-surface/s);
     expect(notFoundPage).toContain('focus-visible:outline-2');
   });

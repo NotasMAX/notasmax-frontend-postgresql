@@ -1,4 +1,5 @@
 import type { SelectHTMLAttributes } from 'react';
+import { Icon } from './Icon';
 
 type SelectFieldProps = SelectHTMLAttributes<HTMLSelectElement> & {
   readonly density?: 'comfortable' | 'compact';
@@ -20,18 +21,7 @@ export function SelectField({
         {...props}
         className={`select-field-control appearance-none rounded-lg border border-outline bg-surface py-2 pl-3 pr-10 text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${densityClasses[density]} ${className}`.trim()}
       />
-      <svg
-        aria-hidden="true"
-        className="select-field-chevron"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-        viewBox="0 0 24 24"
-      >
-        <path d="m7 10 5 5 5-5" />
-      </svg>
+      <Icon className="select-field-chevron" name="expandMore" />
     </span>
   );
 }

@@ -119,6 +119,65 @@ describe('development design-system route', () => {
     expect(document.body.textContent).not.toMatch(/@example\\.test|Bearer /i);
   });
 
+  it('documents shared action variants, status badges and select control', () => {
+    renderRoute('/docs/design-system');
+
+    const actions = screen.getByRole('region', { name: 'Ações e estados' });
+    expect(within(actions).getByRole('button', { name: 'Buscar' }).className).toContain(
+      'bg-primary',
+    );
+    expect(within(actions).getByRole('button', { name: 'Editar' }).className).toContain(
+      'border-outline',
+    );
+    expect(within(actions).getByRole('button', { name: 'Remover' }).className).toContain(
+      'bg-danger',
+    );
+    expect(within(actions).getByRole('link', { name: 'Voltar' })).toBeTruthy();
+    expect(
+      within(actions)
+        .getByRole('button', { name: 'Fechar' })
+        .querySelector('svg')
+        ?.getAttribute('aria-hidden'),
+    ).toBe('true');
+    expect(
+      within(actions).getByRole('button', { name: 'Indisponível' }).hasAttribute('disabled'),
+    ).toBe(true);
+    expect(within(actions).getByText('Ativa')).toBeTruthy();
+    expect(within(actions).getByText('Aguardando')).toBeTruthy();
+    expect(within(actions).getByText('Erro')).toBeTruthy();
+    expect(within(actions).getByRole('combobox', { name: 'Seletor de exemplo' })).toBeTruthy();
+  });
+
+  it('documents accessible alert and toast samples with dismissal and focus return', async () => {
+    const user = userEvent.setup();
+    renderRoute('/docs/design-system');
+
+    const feedback = screen.getByRole('region', { name: 'Avisos e notificações' });
+    const statusAlert = within(feedback).getByRole('status');
+    expect(statusAlert.getAttribute('aria-live')).toBe('polite');
+    expect(statusAlert.textContent).toContain('Mensagem informativa de exemplo.');
+
+    const urgentAlert = within(feedback).getByRole('alert');
+    expect(urgentAlert.getAttribute('aria-live')).toBe('assertive');
+    expect(urgentAlert.textContent).toContain('Nenhuma ação foi executada.');
+
+    const showToastButton = within(feedback).getByRole('button', {
+      name: 'Exibir notificação de exemplo',
+    });
+    await user.click(showToastButton);
+
+    const toastMessage = screen.getByText('Notificação de exemplo. Nenhum dado foi alterado.');
+    const toast = toastMessage.closest('[role="status"]');
+    expect(toast).toBeTruthy();
+    expect(toast?.getAttribute('aria-live')).toBe('polite');
+    await user.click(
+      within(toast as HTMLElement).getByRole('button', { name: 'Fechar notificação' }),
+    );
+
+    expect(screen.queryByText('Notificação de exemplo. Nenhum dado foi alterado.')).toBeNull();
+    expect(document.activeElement).toBe(showToastButton);
+  });
+
   it('puts each existing visual sample in one approved card and preserves the real surface cards', () => {
     renderRoute('/docs/design-system');
 

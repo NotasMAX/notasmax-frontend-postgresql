@@ -13,13 +13,13 @@ import type { ClassSubjectOffer, TeacherAssociation } from '../../api/adminAcade
 import type { AdminClass } from '../../api/adminAcademicCatalog';
 import type { TeacherAccountSummary } from '../../api/adminAccounts';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { SelectField } from '../../components/SelectField';
+import { CenteredSubmitButton } from '../../components/CenteredSubmitButton';
 import { accountErrorMessage } from '../adminAccounts/accountUi';
 import { AcademicPageLayout } from './AcademicPageLayout';
 import {
+  dangerButtonClass,
   primaryButtonClass,
   secondaryButtonClass,
-  secondaryDisabledButtonClass,
 } from './academicButtonStyles';
 const inputClass =
   'min-h-11 w-full rounded-lg border border-outline bg-surface px-3 text-body-medium text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
@@ -36,7 +36,7 @@ export function ClassTeacherManagementPage() {
   const [teachers, setTeachers] = useState<TeacherCollection | null>(null);
   const [teacherQuery, setTeacherQuery] = useState('');
   const [teacherCandidates, setTeacherCandidates] = useState<readonly TeacherAccountSummary[]>([]);
-  const [selectedTeacherId, setSelectedTeacherId] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -82,6 +82,8 @@ export function ClassTeacherManagementPage() {
     if (searching || busy) return;
     setSearching(true);
     setErrorMessage(null);
+    setTeacherCandidates([]);
+    setHasSearched(false);
     try {
       const result = await loadAcademicTeacherCandidates({
         ...(teacherQuery.trim() ? { search: teacherQuery.trim() } : {}),
@@ -89,7 +91,7 @@ export function ClassTeacherManagementPage() {
         pageSize: 20,
       });
       setTeacherCandidates(result.items);
-      setSelectedTeacherId('');
+      setHasSearched(true);
     } catch (error) {
       setErrorMessage(accountErrorMessage(error));
     } finally {
@@ -97,23 +99,16 @@ export function ClassTeacherManagementPage() {
     }
   }
 
-  async function addTeacher() {
-    if (
-      !classId ||
-      !subjectId ||
-      !teachers ||
-      !selectedTeacherId ||
-      busy ||
-      mutationInFlight.current
-    )
+  async function addTeacher(teacherId: string) {
+    if (!classId || !subjectId || !teachers || !teacherId || busy || mutationInFlight.current)
       return;
     mutationInFlight.current = true;
     setBusy(true);
     setErrorMessage(null);
     try {
-      await addAcademicTeacher(classId, subjectId, selectedTeacherId, teachers.etag);
+      await addAcademicTeacher(classId, subjectId, teacherId, teachers.etag);
       setTeacherCandidates([]);
-      setSelectedTeacherId('');
+      setHasSearched(false);
       await refresh();
     } catch (error) {
       setErrorMessage(accountErrorMessage(error));
@@ -220,11 +215,25 @@ export function ClassTeacherManagementPage() {
                       <p className="text-body-small text-muted">{teacher.email}</p>
                     </div>
                     <button
-                      className={secondaryDisabledButtonClass}
+                      className={dangerButtonClass}
                       disabled={busy}
                       onClick={() => setPendingRemoval(teacher)}
                       type="button"
                     >
+                      <svg
+                        aria-hidden="true"
+                        className="mr-2 inline size-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="1.8"
+                        />
+                      </svg>
                       Remover professor
                     </button>
                   </li>
@@ -245,7 +254,7 @@ export function ClassTeacherManagementPage() {
                 Associar professor
               </h2>
               <p className="mt-1 text-body-medium text-muted">
-                Busque pelo nome ou e-mail e selecione um professor disponível.
+                Busque pelo nome ou e-mail e associe um professor disponível.
               </p>
             </div>
             <form className="space-y-3" onSubmit={(event) => void searchTeachers(event)}>
@@ -263,42 +272,46 @@ export function ClassTeacherManagementPage() {
                   value={teacherQuery}
                 />
               </label>
-              <button
-                className={secondaryDisabledButtonClass}
-                disabled={busy || searching}
-                type="submit"
-              >
-                {searching ? 'Buscando…' : 'Buscar professores'}
-              </button>
+              <CenteredSubmitButton disabled={busy || searching} icon="search">
+                {searching ? 'Buscando…' : 'Buscar'}
+              </CenteredSubmitButton>
               {availableCandidates.length > 0 && (
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <label className="sr-only" htmlFor="teacher-candidate">
-                    Professor disponível
-                  </label>
-                  <SelectField
-                    disabled={busy}
-                    id="teacher-candidate"
-                    onChange={(event) => setSelectedTeacherId(event.currentTarget.value)}
-                    value={selectedTeacherId}
-                  >
-                    <option value="">Selecione um professor</option>
-                    {availableCandidates.map((candidate) => (
-                      <option key={candidate.teacherId} value={candidate.teacherId}>
-                        {candidate.name} · {candidate.email}
-                      </option>
-                    ))}
-                  </SelectField>
-                  <button
-                    className={primaryButtonClass}
-                    disabled={busy || !selectedTeacherId}
-                    onClick={() => void addTeacher()}
-                    type="button"
-                  >
-                    {busy ? 'Salvando…' : 'Associar professor'}
-                  </button>
-                </div>
+                <ul aria-label="Professores disponíveis" className="space-y-3">
+                  {availableCandidates.map((candidate) => (
+                    <li
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-container p-4"
+                      key={candidate.teacherId}
+                    >
+                      <div>
+                        <p className="font-medium text-on-surface">{candidate.name}</p>
+                        <p className="text-body-small text-muted">{candidate.email}</p>
+                      </div>
+                      <button
+                        className={primaryButtonClass}
+                        disabled={busy}
+                        onClick={() => void addTeacher(candidate.teacherId)}
+                        type="button"
+                      >
+                        <svg
+                          aria-hidden="true"
+                          className="mr-2 inline size-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M12 5v14M5 12h14"
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeWidth="1.8"
+                          />
+                        </svg>
+                        {busy ? 'Associando…' : 'Associar professor'}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
-              {teacherCandidates.length > 0 && availableCandidates.length === 0 && (
+              {hasSearched && availableCandidates.length === 0 && (
                 <p className="text-body-medium text-muted">
                   Nenhum professor disponível para associação com esta busca.
                 </p>

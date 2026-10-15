@@ -93,9 +93,11 @@ describe('dedicated class teacher-management page', () => {
       screen.getByRole('textbox', { name: 'Buscar professor por nome ou e-mail' }),
       'disponível',
     );
-    await user.click(screen.getByRole('button', { name: 'Buscar professores' }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Professor disponível' }), '10');
-    await user.click(screen.getByRole('button', { name: 'Associar professor' }));
+    await user.click(screen.getByRole('button', { name: 'Buscar' }));
+    const candidateCard = await screen.findByRole('list', { name: 'Professores disponíveis' });
+    expect(within(candidateCard).getByText('Professor disponível')).toBeTruthy();
+    expect(within(candidateCard).getByText('candidate@example.test')).toBeTruthy();
+    await user.click(within(candidateCard).getByRole('button', { name: 'Associar professor' }));
 
     await waitFor(() => expect(lifecycle.addAcademicTeacher).toHaveBeenCalledOnce());
     expect(lifecycle.addAcademicTeacher).toHaveBeenCalledWith('44', '7', '10', '"teachers-v1"');
@@ -104,6 +106,21 @@ describe('dedicated class teacher-management page', () => {
       page: 1,
       pageSize: 20,
     });
+  });
+
+  it('explains when a search has no available teachers', async () => {
+    const user = userEvent.setup();
+    vi.mocked(lifecycle.loadAcademicTeacherCandidates).mockResolvedValue({
+      items: [],
+      pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 },
+    });
+    renderPage();
+    await screen.findByText('Professora associada');
+    await user.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(
+      await screen.findByText('Nenhum professor disponível para associação com esta busca.'),
+    ).toBeTruthy();
   });
 
   it('requires confirmation before removing an associated teacher', async () => {

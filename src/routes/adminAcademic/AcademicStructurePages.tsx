@@ -708,6 +708,7 @@ export function AcademicClassFormPage() {
     readonly { classId: string; series: number; schoolYear: number }[]
   >([]);
   const [selectedCloseIds, setSelectedCloseIds] = useState<readonly string[]>([]);
+  const [candidateClassesLoaded, setCandidateClassesLoaded] = useState(false);
   const [confirmCreate, setConfirmCreate] = useState(false);
 
   useEffect(() => {
@@ -751,12 +752,19 @@ export function AcademicClassFormPage() {
     const selectedSeries = Number(series);
     if (!Number.isInteger(year) || !Number.isInteger(selectedSeries)) return;
     if (!editing) {
-      const candidates = await loadAllAcademicClasses(year - 1).catch((error: unknown) => {
-        setErrorMessage(accountErrorMessage(error));
-        return null;
-      });
-      if (!candidates) return;
-      setCandidateClasses(candidates);
+      if (!candidateClassesLoaded) {
+        const candidates = await loadAllAcademicClasses(year - 1).catch((error: unknown) => {
+          setErrorMessage(accountErrorMessage(error));
+          return null;
+        });
+        if (!candidates) return;
+        setCandidateClasses(candidates);
+        setCandidateClassesLoaded(true);
+        if (!candidates.some((candidate) => candidate.series === selectedSeries)) {
+          setConfirmCreate(true);
+        }
+        return;
+      }
       setConfirmCreate(true);
       return;
     }
@@ -836,6 +844,7 @@ export function AcademicClassFormPage() {
               onChange={(event) => {
                 setSeries(event.currentTarget.value);
                 setSelectedCloseIds([]);
+                setCandidateClassesLoaded(false);
               }}
               value={series}
             >
@@ -861,6 +870,7 @@ export function AcademicClassFormPage() {
                 setSchoolYear(event.currentTarget.value);
                 setCandidateClasses([]);
                 setSelectedCloseIds([]);
+                setCandidateClassesLoaded(false);
               }}
               required
               type="number"
@@ -898,6 +908,37 @@ export function AcademicClassFormPage() {
               />
             </div>
           )}
+          {!editing &&
+            candidateClassesLoaded &&
+            candidateClasses.some((candidate) => candidate.series === Number(series)) && (
+              <fieldset className="space-y-2 rounded-xl border border-panel-outline p-4">
+                <legend className="text-label-large font-medium text-on-surface">
+                  Turmas do ano anterior para encerrar, se aplicável
+                </legend>
+                <p className="text-body-small text-muted">
+                  Nem todas as turmas da lista podem ser encerradas. Se alguma não puder, a nova
+                  turma não será criada.
+                </p>
+                {candidateClasses
+                  .filter((candidate) => candidate.series === Number(series))
+                  .map((candidate) => (
+                    <label className="flex gap-2 text-body-medium" key={candidate.classId}>
+                      <input
+                        checked={selectedCloseIds.includes(candidate.classId)}
+                        onChange={(event) =>
+                          setSelectedCloseIds((current) =>
+                            event.target.checked
+                              ? [...current, candidate.classId]
+                              : current.filter((id) => id !== candidate.classId),
+                          )
+                        }
+                        type="checkbox"
+                      />
+                      {candidate.series}ª série — {candidate.schoolYear} · {candidate.classId}
+                    </label>
+                  ))}
+              </fieldset>
+            )}
           <div className="flex flex-wrap gap-3">
             <button
               className={primaryButtonClass}
@@ -927,35 +968,6 @@ export function AcademicClassFormPage() {
                 ? `A nova turma só será criada se todas as ${selectedCloseIds.length} turma(s) escolhidas puderem ser encerradas. Se algo impedir a ação, nenhuma mudança será feita.`
                 : 'A turma será criada com os dados informados.'}
             </p>
-            {candidateClasses.some((candidate) => candidate.series === Number(series)) && (
-              <fieldset className="space-y-2">
-                <legend className="text-label-large font-medium text-on-surface">
-                  Turmas do ano anterior para encerrar, se aplicável
-                </legend>
-                <p className="text-body-small text-muted">
-                  Nem todas as turmas da lista podem ser encerradas. Se alguma não puder, a nova
-                  turma não será criada.
-                </p>
-                {candidateClasses
-                  .filter((candidate) => candidate.series === Number(series))
-                  .map((candidate) => (
-                    <label className="flex gap-2 text-body-medium" key={candidate.classId}>
-                      <input
-                        checked={selectedCloseIds.includes(candidate.classId)}
-                        onChange={(event) =>
-                          setSelectedCloseIds((current) =>
-                            event.target.checked
-                              ? [...current, candidate.classId]
-                              : current.filter((id) => id !== candidate.classId),
-                          )
-                        }
-                        type="checkbox"
-                      />
-                      {candidate.series}ª série — {candidate.schoolYear} · {candidate.classId}
-                    </label>
-                  ))}
-              </fieldset>
-            )}
           </div>
         </ConfirmDialog>
       )}

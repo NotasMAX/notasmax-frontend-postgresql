@@ -231,11 +231,13 @@ describe('academic subject and class workflows', () => {
     await user.type(screen.getByRole('spinbutton', { name: 'Ano letivo' }), '2026');
     fireEvent.change(screen.getByLabelText('Data de início'), { target: { value: '2026-02-01' } });
     await user.click(screen.getByRole('button', { name: 'Salvar turma' }));
-    await screen.findByRole('alertdialog', { name: 'Confirmar cadastro da turma?' });
+    await screen.findByRole('checkbox', { name: /prior-a/ });
     await user.click(screen.getByRole('checkbox', { name: /prior-a/ }));
     await user.click(screen.getByRole('checkbox', { name: /prior-b/ }));
 
     expect(lifecycleService.createAcademicClassWithClosures).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Salvar turma' }));
+    await screen.findByRole('alertdialog', { name: 'Confirmar cadastro da turma?' });
     await user.click(screen.getByRole('button', { name: 'Confirmar cadastro' }));
 
     await waitFor(() =>
@@ -263,10 +265,12 @@ describe('academic subject and class workflows', () => {
     await user.type(screen.getByRole('spinbutton', { name: 'Ano letivo' }), '2026');
     fireEvent.change(screen.getByLabelText('Data de início'), { target: { value: '2026-02-01' } });
     await user.click(screen.getByRole('button', { name: 'Salvar turma' }));
+    await screen.findByRole('checkbox', { name: /prior-a/ });
+    await user.click(screen.getByRole('checkbox', { name: /prior-a/ }));
+    await user.click(screen.getByRole('button', { name: 'Salvar turma' }));
     const dialog = await screen.findByRole('alertdialog', {
       name: 'Confirmar cadastro da turma?',
     });
-    await user.click(screen.getByRole('checkbox', { name: /prior-a/ }));
     await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
 
     expect(lifecycleService.prepareClassClosureSelection).not.toHaveBeenCalled();
@@ -294,8 +298,10 @@ describe('academic subject and class workflows', () => {
     await user.type(screen.getByRole('spinbutton', { name: 'Ano letivo' }), '2026');
     fireEvent.change(screen.getByLabelText('Data de início'), { target: { value: '2026-02-01' } });
     await user.click(screen.getByRole('button', { name: 'Salvar turma' }));
-    await screen.findByRole('alertdialog', { name: 'Confirmar cadastro da turma?' });
+    await screen.findByRole('checkbox', { name: /prior-a/ });
     await user.click(screen.getByRole('checkbox', { name: /prior-a/ }));
+    await user.click(screen.getByRole('button', { name: 'Salvar turma' }));
+    await screen.findByRole('alertdialog', { name: 'Confirmar cadastro da turma?' });
     await user.click(screen.getByRole('button', { name: 'Confirmar cadastro' }));
 
     const alert = await screen.findByRole('alert');

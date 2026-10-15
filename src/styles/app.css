@@ -13,6 +13,7 @@
   --color-primary: #15538e;
   --color-primary-hover: #104575;
   --color-on-primary: #ffffff;
+  --color-danger-hover: #940707;
   --color-highlight: #fac239;
   --color-success: #15803d;
   --color-success-surface: #f0fdf4;
@@ -26,6 +27,9 @@
   --color-outline: #aeb8c0;
   --color-panel-outline: #d9d9d9;
   --shadow-panel: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
+  --radius-control: 0.5rem;
+  --radius-card: 1rem;
+  --radius-dialog: 1.25rem;
   --color-danger: #b50909;
   --color-error-surface: #fff2f1;
   --text-display-large: 3.5625rem;
@@ -129,16 +133,16 @@ html:has(.app-platform) {
 
 .panel-surface {
   border: 1px solid var(--color-panel-outline);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-panel);
 }
 
-.account-button-primary {
-  box-shadow: var(--shadow-panel);
+.dialog-surface {
+  border-radius: var(--radius-dialog);
 }
 
 .account-button-secondary {
   border-color: var(--color-panel-outline);
-  box-shadow: var(--shadow-panel);
 }
 
 .select-field-chevron {

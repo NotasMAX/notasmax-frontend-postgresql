@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ConfirmDialog } from './ConfirmDialog';
+import { ConfirmDialog, type ConfirmDialogProps } from './ConfirmDialog';
 
 afterEach(() => cleanup());
 
@@ -31,6 +31,29 @@ function DialogFixture({ onBackgroundActivate }: { onBackgroundActivate: () => v
 }
 
 describe('ConfirmDialog', () => {
+  it('requires an explanation in its TypeScript contract', () => {
+    const commonProps = {
+      confirmLabel: 'Confirmar',
+      onCancel: vi.fn(),
+      onConfirm: vi.fn(),
+      title: 'Confirmação',
+    };
+    const described: ConfirmDialogProps = {
+      ...commonProps,
+      description: 'Confirme a ação.',
+    };
+    const withChildren: ConfirmDialogProps = {
+      ...commonProps,
+      children: 'Confirme a ação.',
+    };
+    // @ts-expect-error ConfirmDialog must explain the action with a description or child content.
+    const withoutExplanation: ConfirmDialogProps = commonProps;
+
+    expect(described.description).toBe('Confirme a ação.');
+    expect(withChildren.children).toBe('Confirme a ação.');
+    expect(withoutExplanation.title).toBe('Confirmação');
+  });
+
   it('contains focus and blocks background interaction while making the background inert', async () => {
     const user = userEvent.setup();
     const onBackgroundActivate = vi.fn();

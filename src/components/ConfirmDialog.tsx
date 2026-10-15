@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { Alert } from './Alert';
+import { Button } from './Button';
 
 interface ConfirmDialogCommonProps {
   readonly title: string;
@@ -14,8 +16,8 @@ interface ConfirmDialogCommonProps {
 }
 
 type ConfirmDialogContentProps =
-  | { readonly description: string; readonly children?: never }
-  | { readonly description?: never; readonly children: ReactNode };
+  | { readonly description: string; readonly children?: ReactNode }
+  | { readonly description?: undefined; readonly children: ReactNode };
 
 export type ConfirmDialogProps = ConfirmDialogCommonProps & ConfirmDialogContentProps;
 
@@ -34,6 +36,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const titleId = useId();
   const descriptionId = useId();
+  const contentId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
@@ -113,11 +116,11 @@ export function ConfirmDialog({
       ref={overlayRef}
     >
       <section
-        aria-describedby={description ? descriptionId : undefined}
+        aria-describedby={description ? descriptionId : children ? contentId : undefined}
         aria-labelledby={titleId}
         aria-modal="true"
         aria-busy={pending}
-        className="panel-surface max-h-[90vh] w-full max-w-lg space-y-5 overflow-y-auto rounded-2xl bg-surface p-6 shadow-panel"
+        className="panel-surface dialog-surface max-h-[90vh] w-full max-w-lg space-y-5 overflow-y-auto bg-surface p-6"
         ref={dialogRef}
         role="alertdialog"
       >
@@ -125,46 +128,38 @@ export function ConfirmDialog({
           <h2 className="text-title-large font-semibold text-on-surface" id={titleId}>
             {title}
           </h2>
-          {description ? (
+          {description && (
             <p className="text-body-medium leading-6 text-muted" id={descriptionId}>
               {description}
             </p>
-          ) : (
-            <div className="space-y-3 text-body-medium">{children}</div>
+          )}
+          {children && (
+            <div className="space-y-3 text-body-medium" id={contentId}>
+              {children}
+            </div>
           )}
         </div>
-        {errorMessage && (
-          <p
-            aria-live="assertive"
-            className="rounded-lg border border-danger bg-error-surface p-3 text-danger"
-            role="alert"
-          >
-            {errorMessage}
-          </p>
-        )}
+        {errorMessage && <Alert tone="danger">{errorMessage}</Alert>}
         <div className="flex flex-wrap justify-end gap-3">
-          <button
-            className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-70"
+          <Button
             disabled={pending}
             onClick={onCancel}
             ref={cancelRef}
+            variant="secondary"
             type="button"
           >
             Cancelar
-          </button>
-          <button
-            className={`account-button-primary min-h-11 rounded-lg px-4 text-label-large font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-70 ${
-              confirmTone === 'danger'
-                ? 'bg-danger hover:opacity-90 focus-visible:outline-danger'
-                : 'bg-primary hover:bg-primary-hover focus-visible:outline-primary'
-            }`}
+          </Button>
+          <Button
             disabled={pending || confirmDisabled}
+            leadingIcon={confirmTone === 'danger' ? 'warning' : undefined}
             onClick={onConfirm}
             ref={confirmRef}
+            variant={confirmTone}
             type="button"
           >
             {pending ? pendingLabel : confirmLabel}
-          </button>
+          </Button>
         </div>
         {pending && (
           <p aria-live="polite" className="text-body-small text-muted" role="status">

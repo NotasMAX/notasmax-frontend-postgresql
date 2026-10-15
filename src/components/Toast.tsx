@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import { Button } from './Button';
+import { Icon, type IconName } from './Icon';
 
 export type ToastTone = 'success' | 'info' | 'warning' | 'error';
 export type ToastPosition =
@@ -29,12 +31,11 @@ const toneClasses: Readonly<Record<ToastTone, string>> = {
   error: 'border-l-danger bg-error-surface text-danger',
 };
 
-const iconPaths: Readonly<Record<ToastTone, string>> = {
-  success: 'M5 12l4 4L19 6',
-  info: 'M12 16v-4m0-4h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z',
-  warning:
-    'M12 9v4m0 4h.01M10.3 3.9 1.8 18.2A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z',
-  error: 'M15 9l-6 6m0-6 6 6m5-3a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z',
+const toneIcons: Readonly<Record<ToastTone, IconName>> = {
+  success: 'check',
+  info: 'info',
+  warning: 'warning',
+  error: 'error',
 };
 
 export function Toast({
@@ -58,30 +59,20 @@ export function Toast({
     <div
       aria-atomic="true"
       aria-live={isError ? 'assertive' : 'polite'}
-      className={`fixed z-50 grid w-[calc(100%-2rem)] max-w-sm grid-cols-[1.25rem_1fr_1.25rem] items-center gap-3 rounded-xl border border-outline border-l-4 p-4 text-body-medium shadow-panel ${positionClasses[position]} ${toneClasses[tone]}`}
+      className={`fixed z-50 grid w-[calc(100%-2rem)] max-w-sm grid-cols-[1.25rem_minmax(0,1fr)_2.75rem] items-center gap-3 rounded-card border border-outline border-l-4 bg-surface p-4 text-body-medium shadow-panel ${positionClasses[position]} ${toneClasses[tone]}`}
       role={isError ? 'alert' : 'status'}
     >
-      <svg
-        aria-hidden="true"
-        className="h-5 w-5"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-      >
-        <path d={iconPaths[tone]} />
-      </svg>
+      <Icon name={toneIcons[tone]} />
       <p className="text-center">{message}</p>
-      <button
+      <Button
         aria-label="Fechar notificação"
-        className="justify-self-end rounded-md px-1 text-title-medium text-muted hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="justify-self-end"
+        leadingIcon="close"
         onClick={onDismiss}
+        size="icon"
         type="button"
-      >
-        ×
-      </button>
+        variant="text"
+      ></Button>
     </div>
   );
 }
