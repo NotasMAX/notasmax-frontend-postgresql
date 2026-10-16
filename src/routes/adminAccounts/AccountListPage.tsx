@@ -38,6 +38,7 @@ const pageSizeOptions = [20, 50, 100] as const;
 interface AccountListLocationState {
   readonly search?: string;
   readonly activationEmailStatus?: ActivationEmailStatus;
+  readonly photoNotSaved?: boolean;
 }
 
 function readLocationState(value: unknown): AccountListLocationState {
@@ -50,6 +51,7 @@ function readLocationState(value: unknown): AccountListLocationState {
     ...(state.activationEmailStatus === 'sent' || state.activationEmailStatus === 'failed'
       ? { activationEmailStatus: state.activationEmailStatus }
       : {}),
+    ...(state.photoNotSaved === true ? { photoNotSaved: true } : {}),
   };
 }
 
@@ -273,9 +275,16 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
     >
       {showCreatedToast && initialState.activationEmailStatus && (
         <Toast
-          message={accountCreatedFeedback(initialState.activationEmailStatus)}
+          message={accountCreatedFeedback(
+            initialState.activationEmailStatus,
+            initialState.photoNotSaved,
+          )}
           onDismiss={dismissCreatedToast}
-          tone={initialState.activationEmailStatus === 'sent' ? 'success' : 'warning'}
+          tone={
+            initialState.activationEmailStatus === 'sent' && !initialState.photoNotSaved
+              ? 'success'
+              : 'warning'
+          }
         />
       )}
       <form

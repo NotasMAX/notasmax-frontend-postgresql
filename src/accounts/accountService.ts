@@ -30,6 +30,7 @@ import {
   type TeacherAccountFilters,
   type TeacherAccountSummary,
 } from '../api/adminAccounts';
+import { accountPhotoUrl, uploadAccountPhoto } from '../api/adminAccountPhotos';
 export type AccountListItem =
   StudentAccountSummary | TeacherAccountSummary | AdministratorAccountSummary;
 
@@ -108,6 +109,16 @@ export async function updateAccount(
 
 export async function resendActivation(accountId: string): Promise<ActivationEmailStatus> {
   return resendAccountActivation(accountId);
+}
+
+export async function saveAccountPhoto(accountId: string, photo: File): Promise<void> {
+  return uploadAccountPhoto(accountId, photo);
+}
+
+export function accountPhotoSource(account: AccountDetail): string | null {
+  return account.photoUpdatedAt
+    ? accountPhotoUrl(accountIdentifier(account), account.photoUpdatedAt)
+    : null;
 }
 
 export function accountIdentifier(account: AccountListItem | AccountDetail): string {

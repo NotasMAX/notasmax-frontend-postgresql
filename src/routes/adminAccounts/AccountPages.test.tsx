@@ -24,9 +24,11 @@ vi.mock('../../accounts/accountService', async (importOriginal) => {
   return {
     ...actual,
     createAccount: vi.fn(),
+    findAccountIdentifierByEmail: vi.fn(),
     loadAccountDetail: vi.fn(),
     loadAccountPage: vi.fn(),
     resendActivation: vi.fn(),
+    saveAccountPhoto: vi.fn(),
     updateAccount: vi.fn(),
   };
 });
@@ -160,8 +162,15 @@ function renderAt(path: string) {
   );
 }
 
+function photoFile(name = 'foto.png', type = 'image/png'): File {
+  return new File(['synthetic-photo'], name, { type });
+}
+
 beforeEach(() => {
   vi.resetAllMocks();
+  // O jsdom não implementa as object URLs usadas na prévia da foto.
+  URL.createObjectURL = vi.fn(() => 'blob:photo-preview');
+  URL.revokeObjectURL = vi.fn();
   vi.mocked(academicCatalog.loadAccountFilterOptions).mockResolvedValue({
     classes: [
       { classId: '44', series: 9, schoolYear: 2026, isClosed: false },
@@ -464,5 +473,114 @@ describe('account management pages', () => {
     expect(emailInput.getAttribute('aria-describedby')).toContain('account-email-error-0');
     expect(screen.queryByRole('img')).toBeNull();
     expect(screen.getByRole('alert').textContent).not.toContain('katherine@example.test');
+  });
+});
+
+describe('account photos', () => {
+  it('uploads the selected photo after creating the account', async () => {
+    vi.mocked(accountService.createAccount).mockResolvedValue('sent');
+    vi.mocked(accountService.findAccountIdentifierByEmail).mockResolvedValue('202');
+    vi.mocked(accountService.loadAccountDetail).mockResolvedValue(createdStudentDetail);
+    vi.mocked(accountService.saveAccountPhoto).mockResolvedValue(undefined);
+    renderAt('/admin/contas/alunos/novo');
+    const user = userEvent.setup();
+    const photo = photoFile();
+
+    await user.upload(screen.getByLabelText('Escolher foto'), photo);
+    expect(screen.getByRole('img', { name: 'Prévia da nova foto' }).getAttribute('src')).toBe(
+      'blob:photo-preview',
+    );
+    await user.type(screen.getByLabelText('Nome completo'), 'Katherine Johnson');
+    await user.type(screen.getByLabelText('E-mail institucional'), 'katherine@example.test');
+    await user.type(screen.getByLabelText('Telefone do responsável'), '555-0101');
+    await user.click(screen.getByRole('button', { name: 'Cadastrar conta' }));
+
+    expect(
+      await screen.findByText('Conta cadastrada com sucesso. Solicitação de ativação recebida.'),
+    ).toBeTruthy();
+    expect(accountService.saveAccountPhoto).toHaveBeenCalledWith('202', photo);
+  });
+
+  it('keeps the created account and warns when the photo upload fails', async () => {
+    vi.mocked(accountService.createAccount).mockResolvedValue('sent');
+    vi.mocked(accountService.findAccountIdentifierByEmail).mockResolvedValue('202');
+    vi.mocked(accountService.loadAccountDetail).mockResolvedValue(createdStudentDetail);
+    vi.mocked(accountService.saveAccountPhoto).mockRejectedValue(new Error('network'));
+    renderAt('/admin/contas/alunos/novo');
+    const user = userEvent.setup();
+
+    await user.upload(screen.getByLabelText('Escolher foto'), photoFile());
+    await user.type(screen.getByLabelText('Nome completo'), 'Katherine Johnson');
+    await user.type(screen.getByLabelText('E-mail institucional'), 'katherine@example.test');
+    await user.type(screen.getByLabelText('Telefone do responsável'), '555-0101');
+    await user.click(screen.getByRole('button', { name: 'Cadastrar conta' }));
+
+    expect(await screen.findByRole('heading', { name: 'Katherine Johnson' })).toBeTruthy();
+    expect(await screen.findByText(/A foto não foi salva/)).toBeTruthy();
+    expect(accountService.saveAccountPhoto).toHaveBeenCalledWith('202', expect.any(File));
+    expect(accountService.loadAccountDetail).toHaveBeenCalledWith('student', '202');
+  });
+
+  it('rejects unsupported files before submitting', async () => {
+    renderAt('/admin/contas/professores/novo');
+    const user = userEvent.setup({ applyAccept: false });
+
+    await user.upload(screen.getByLabelText('Escolher foto'), photoFile('foto.gif', 'image/gif'));
+
+    expect(await screen.findByText('Escolha uma foto em JPEG ou PNG.')).toBeTruthy();
+    expect(screen.getByLabelText('Escolher foto').getAttribute('aria-invalid')).toBe('true');
+    expect(screen.queryByRole('button', { name: 'Desfazer escolha' })).toBeNull();
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+  });
+
+  it('saves only the photo when no other field changed', async () => {
+    vi.mocked(accountService.loadAccountDetail).mockResolvedValue(teacher);
+    vi.mocked(accountService.saveAccountPhoto).mockResolvedValue(undefined);
+    renderAt('/admin/contas/professores/55/editar');
+    const user = userEvent.setup();
+    const photo = photoFile('nova.jpg', 'image/jpeg');
+
+    await user.upload(await screen.findByLabelText('Escolher foto'), photo);
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+
+    expect(await screen.findByText('Foto da conta atualizada.')).toBeTruthy();
+    expect(accountService.saveAccountPhoto).toHaveBeenCalledWith('55', photo);
+    expect(accountService.updateAccount).not.toHaveBeenCalled();
+  });
+
+  it('keeps the edit form open with the API message when only the photo fails', async () => {
+    vi.mocked(accountService.loadAccountDetail).mockResolvedValue({
+      ...teacher,
+      photoUpdatedAt: '2026-10-16T12:00:00.000Z',
+    });
+    vi.mocked(accountService.saveAccountPhoto).mockRejectedValue(
+      new ApiRequestError({
+        status: 415,
+        problem: {
+          status: 415,
+          title: 'Tipo de mídia não suportado',
+          detail: 'Envie uma foto JPEG ou PNG.',
+        },
+      }),
+    );
+    renderAt('/admin/contas/professores/55/editar');
+    const user = userEvent.setup();
+
+    await user.upload(await screen.findByLabelText('Trocar foto'), photoFile());
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+
+    expect(await screen.findByText('Envie uma foto JPEG ou PNG.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Salvar alterações' })).toBeTruthy();
+  });
+
+  it('shows the saved photo on the account details when the API reports one', async () => {
+    vi.mocked(accountService.loadAccountDetail).mockResolvedValue({
+      ...teacher,
+      photoUpdatedAt: '2026-10-16T12:00:00.000Z',
+    });
+    renderAt('/admin/contas/professores/55');
+
+    const image = await screen.findByRole('img', { name: 'Foto de Grace Hopper' });
+    expect(image.getAttribute('src')).toMatch(/\/api\/v1\/admin\/users\/55\/photo\?v=/);
   });
 });

@@ -3,10 +3,12 @@ import { Link } from 'react-router';
 import type { AccountProfile, ActivationEmailStatus } from '../../api/adminAccounts';
 import {
   accountIdentifier,
+  accountPhotoSource,
   loadAccountDetail,
   resendActivation,
   type AccountDetail,
 } from '../../accounts/accountService';
+import { AccountAvatar } from './AccountAvatar';
 import { AccountPageShell } from './AccountPageShell';
 import { Badge } from '../../components/Badge';
 import { Toast, type ToastTone } from '../../components/Toast';
@@ -210,14 +212,21 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
             className="panel-surface space-y-5 rounded-2xl bg-surface p-5 sm:p-6"
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h2
-                  className="text-title-large font-semibold text-on-surface"
-                  id="account-detail-heading"
-                >
-                  {account.name}
-                </h2>
-                <p className="break-all text-body-medium text-muted">{account.email}</p>
+              <div className="flex min-w-0 items-center gap-4">
+                <AccountAvatar
+                  alt={'Foto de ' + account.name}
+                  profile={profile}
+                  source={accountPhotoSource(account)}
+                />
+                <div className="min-w-0">
+                  <h2
+                    className="text-title-large font-semibold text-on-surface"
+                    id="account-detail-heading"
+                  >
+                    {account.name}
+                  </h2>
+                  <p className="break-all text-body-medium text-muted">{account.email}</p>
+                </div>
               </div>
               <Badge tone={activationStatusTone(account.activationStatus)}>
                 {activationStatusLabel(account.activationStatus)}

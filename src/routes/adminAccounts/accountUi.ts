@@ -76,10 +76,35 @@ export function activationFeedback(status: ActivationEmailStatus): string {
     : 'Não foi possível enviar o link. Tente novamente.';
 }
 
-export function accountCreatedFeedback(status: ActivationEmailStatus): string {
-  return status === 'sent'
-    ? 'Conta cadastrada com sucesso. Solicitação de ativação recebida.'
-    : 'Conta cadastrada com sucesso, mas não foi possível enviar o link de ativação.';
+export function accountCreatedFeedback(
+  status: ActivationEmailStatus,
+  photoNotSaved = false,
+): string {
+  const message =
+    status === 'sent'
+      ? 'Conta cadastrada com sucesso. Solicitação de ativação recebida.'
+      : 'Conta cadastrada com sucesso, mas não foi possível enviar o link de ativação.';
+  return photoNotSaved ? message + ' ' + ACCOUNT_PHOTO_NOT_SAVED_MESSAGE : message;
+}
+
+// Política de fotos aprovada: JPEG ou PNG com até 5 MB. A API continua validando por conta própria.
+const ACCOUNT_PHOTO_MEDIA_TYPES: ReadonlySet<string> = new Set(['image/jpeg', 'image/png']);
+export const ACCOUNT_PHOTO_ACCEPT = 'image/jpeg,image/png';
+export const ACCOUNT_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+export const ACCOUNT_PHOTO_NOT_SAVED_MESSAGE =
+  'A foto não foi salva. Edite a conta para enviá-la novamente.';
+
+export function accountPhotoValidationMessage(photo: File): string | null {
+  if (!ACCOUNT_PHOTO_MEDIA_TYPES.has(photo.type)) {
+    return 'Escolha uma foto em JPEG ou PNG.';
+  }
+  if (photo.size === 0) {
+    return 'O arquivo escolhido está vazio.';
+  }
+  if (photo.size > ACCOUNT_PHOTO_MAX_BYTES) {
+    return 'A foto deve ter no máximo 5 MB.';
+  }
+  return null;
 }
 
 export interface AccountFilterDraft {

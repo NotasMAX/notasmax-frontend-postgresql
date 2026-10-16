@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { ApiRequestError } from '../../api/problemDetails';
 import type { AdminClassOption } from '../../api/adminAcademicCatalog';
 import {
+  ACCOUNT_PHOTO_MAX_BYTES,
   accountCollectionPath,
   accountCreatedFeedback,
+  accountPhotoValidationMessage,
   accountProfileFromPath,
   activationFeedback,
   buildAccountFilters,
@@ -118,6 +120,33 @@ describe('account UI contract helpers', () => {
     expect(accountCreatedFeedback('sent')).toContain('Conta cadastrada com sucesso.');
     expect(accountCreatedFeedback('failed')).toContain(
       'Conta cadastrada com sucesso, mas não foi possível enviar o link de ativação.',
+    );
+  });
+
+  it('accepts only JPEG and PNG photos up to 5 MB', () => {
+    const photo = (type: string, size: number) =>
+      new File([new Uint8Array(size)], 'foto', { type });
+
+    expect(accountPhotoValidationMessage(photo('image/jpeg', 1))).toBeNull();
+    expect(accountPhotoValidationMessage(photo('image/png', ACCOUNT_PHOTO_MAX_BYTES))).toBeNull();
+    expect(accountPhotoValidationMessage(photo('image/gif', 1))).toBe(
+      'Escolha uma foto em JPEG ou PNG.',
+    );
+    expect(accountPhotoValidationMessage(photo('image/png', 0))).toBe(
+      'O arquivo escolhido está vazio.',
+    );
+    expect(accountPhotoValidationMessage(photo('image/png', ACCOUNT_PHOTO_MAX_BYTES + 1))).toBe(
+      'A foto deve ter no máximo 5 MB.',
+    );
+  });
+
+  it('adds the photo warning to the created account feedback only when needed', () => {
+    expect(accountCreatedFeedback('sent', true)).toBe(
+      'Conta cadastrada com sucesso. Solicitação de ativação recebida. ' +
+        'A foto não foi salva. Edite a conta para enviá-la novamente.',
+    );
+    expect(accountCreatedFeedback('sent', false)).toBe(
+      'Conta cadastrada com sucesso. Solicitação de ativação recebida.',
     );
   });
 });

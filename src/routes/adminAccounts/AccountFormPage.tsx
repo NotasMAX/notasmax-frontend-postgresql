@@ -3,9 +3,11 @@ import { Link, useNavigate } from 'react-router';
 import type { AccountProfile, StudentAccountDetail } from '../../api/adminAccounts';
 import {
   accountIdentifier,
+  accountPhotoSource,
   createAccount,
   findAccountIdentifierByEmail,
   loadAccountDetail,
+  saveAccountPhoto,
   updateAccount,
   type AccountCreateInput,
   type AccountDetail,
@@ -13,9 +15,11 @@ import {
 } from '../../accounts/accountService';
 import { MAXIMUM_PASSWORD_LENGTH, MINIMUM_PASSWORD_LENGTH } from '../../auth/passwordPolicy';
 import { AccountPageShell } from './AccountPageShell';
+import { AccountPhotoField } from './AccountPhotoField';
 import {
   type AccountFormErrors,
   type AccountFormField,
+  ACCOUNT_PHOTO_NOT_SAVED_MESSAGE,
   accountCollectionPath,
   accountCreatedFeedback,
   accountErrorMessage,
@@ -141,6 +145,8 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
   const [errors, setErrors] = useState<AccountFormErrors>(emptyErrors);
   const [saving, setSaving] = useState(false);
   const [localMessage, setLocalMessage] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoErrors, setPhotoErrors] = useState<readonly string[]>([]);
   const emailChanged =
     editing && account !== null && normalizedEmail(values.email) !== normalizedEmail(account.email);
 
@@ -177,9 +183,16 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
     setLocalMessage(null);
   }
 
+  function changePhoto(nextPhoto: File | null, error: string | null) {
+    setPhoto(nextPhoto);
+    setPhotoErrors(error ? [error] : []);
+    setLocalMessage(null);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrors(emptyErrors());
+    setPhotoErrors([]);
     setLocalMessage(null);
     const nextEmail = values.email.trim();
     const emailIsChanging =
@@ -208,18 +221,34 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
           // The account was created successfully; list fallback below preserves access to it.
         }
 
+        // O endpoint da foto precisa do ID da conta nova, então a foto é enviada depois do cadastro.
+        let photoNotSaved = photo !== null;
+        if (photo && createdAccountId) {
+          try {
+            await saveAccountPhoto(createdAccountId, photo);
+            photoNotSaved = false;
+          } catch {
+            // A conta já existe; o aviso abaixo pede para reenviar a foto pela edição.
+          }
+        }
+
         if (createdAccountId) {
           navigate(accountCollectionPath(profile) + '/' + encodeURIComponent(createdAccountId), {
             replace: true,
             state: {
-              message: accountCreatedFeedback(activationEmailStatus),
-              messageTone: activationEmailStatus === 'sent' ? 'success' : 'warning',
+              message: accountCreatedFeedback(activationEmailStatus, photoNotSaved),
+              messageTone:
+                activationEmailStatus === 'sent' && !photoNotSaved ? 'success' : 'warning',
             },
           });
         } else {
           navigate(accountCollectionPath(profile), {
             replace: true,
-            state: { search: nextEmail, activationEmailStatus },
+            state: {
+              search: nextEmail,
+              activationEmailStatus,
+              ...(photoNotSaved ? { photoNotSaved } : {}),
+            },
           });
         }
         return;
@@ -244,20 +273,41 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
       if (isStudentAccount(account) && values.guardianPhone.trim() !== account.guardianPhone) {
         changes.guardianPhone = values.guardianPhone.trim();
       }
-      if (Object.keys(changes).length === 0) {
+      const hasDataChanges = Object.keys(changes).length > 0;
+      if (!hasDataChanges && !photo) {
         setLocalMessage('Nenhuma alteração foi feita.');
         return;
       }
 
-      await updateAccount(profile, accountId as string, changes as AccountPatchInput);
+      if (hasDataChanges) {
+        await updateAccount(profile, accountId as string, changes as AccountPatchInput);
+      }
+      let photoNotSaved = false;
+      if (photo) {
+        try {
+          await saveAccountPhoto(accountId as string, photo);
+        } catch (error) {
+          if (!hasDataChanges) {
+            // Nada mais foi salvo, então o formulário fica aberto para outra tentativa.
+            setPhotoErrors([accountErrorMessage(error)]);
+            return;
+          }
+          photoNotSaved = true;
+        }
+      }
+      const savedMessage = hasDataChanges
+        ? 'Dados da conta atualizados.'
+        : 'Foto da conta atualizada.';
       const detailPath =
         accountCollectionPath(profile) + '/' + encodeURIComponent(accountIdentifier(account));
       navigate(detailPath, {
         replace: true,
         state: {
           ...(emailIsChanging ? { emailChangeTo: nextEmail } : {}),
-          message: 'Dados da conta atualizados.',
-          messageTone: 'success',
+          message: photoNotSaved
+            ? savedMessage + ' ' + ACCOUNT_PHOTO_NOT_SAVED_MESSAGE
+            : savedMessage,
+          messageTone: photoNotSaved ? 'warning' : 'success',
         },
       });
     } catch (error) {
@@ -354,6 +404,14 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
               {localMessage}
             </p>
           )}
+          <AccountPhotoField
+            currentSource={editing && account ? accountPhotoSource(account) : null}
+            disabled={saving}
+            errors={photoErrors}
+            onChange={changePhoto}
+            photo={photo}
+            profile={profile}
+          />
           <AccountTextField
             autoComplete="name"
             errors={errors}

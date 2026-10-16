@@ -56,7 +56,12 @@ export interface StudentEnrollmentHistoryItem {
   readonly cancellationDate: string | null;
 }
 
-export interface StudentAccountDetail extends AccountSummary {
+export interface AccountPhotoMetadata {
+  /** Quando a foto atual foi salva; null ou ausente quando a conta não tem foto. */
+  readonly photoUpdatedAt?: string | null;
+}
+
+export interface StudentAccountDetail extends AccountSummary, AccountPhotoMetadata {
   readonly studentId: string;
   readonly contactPhone?: string;
   readonly guardianPhone: string;
@@ -68,12 +73,12 @@ export interface StudentAccountDetail extends AccountSummary {
   readonly enrollments: readonly StudentEnrollmentHistoryItem[];
 }
 
-export interface TeacherAccountDetail extends AccountSummary {
+export interface TeacherAccountDetail extends AccountSummary, AccountPhotoMetadata {
   readonly teacherId: string;
   readonly contactPhone?: string;
 }
 
-export interface AdministratorAccountDetail extends AccountSummary {
+export interface AdministratorAccountDetail extends AccountSummary, AccountPhotoMetadata {
   readonly administratorId: string;
   readonly contactPhone?: string;
 }
