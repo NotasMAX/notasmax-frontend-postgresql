@@ -5,9 +5,11 @@ import {
   ACCOUNT_PROFILE_LABELS,
   ACCOUNT_PROFILE_PATHS,
   accountCollectionPath,
+  accountRegisterLabel,
   accountTitle,
 } from './accountUi';
 import { AccountProfileIcon } from './AccountProfileIcon';
+import { Icon } from '../../components/Icon';
 
 interface AccountPageShellProps {
   readonly profile: AccountProfile;
@@ -59,10 +61,11 @@ export function AccountPageShell({
             {actions && <div className="flex flex-wrap gap-3">{actions}</div>}
             {showRegisterAction && (
               <Link
-                className="account-button-primary inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="account-button-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 to={accountCollectionPath(profile) + '/novo'}
               >
-                Cadastrar conta
+                <Icon name="add" />
+                {accountRegisterLabel(profile)}
               </Link>
             )}
           </div>

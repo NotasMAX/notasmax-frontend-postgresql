@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import type { AccountProfile, StudentAccountDetail } from '../../api/adminAccounts';
 import {
@@ -12,11 +12,16 @@ import {
   type AccountPatchInput,
 } from '../../accounts/accountService';
 import { MAXIMUM_PASSWORD_LENGTH, MINIMUM_PASSWORD_LENGTH } from '../../auth/passwordPolicy';
+import { Button } from '../../components/Button';
+import { Icon } from '../../components/Icon';
+import { Toast } from '../../components/Toast';
+import { actionClassName } from '../../components/actionStyles';
 import { AccountPageShell } from './AccountPageShell';
 import {
   type AccountFormErrors,
   type AccountFormField,
   accountCollectionPath,
+  accountRegisterLabel,
   accountCreatedFeedback,
   accountErrorMessage,
   getAccountFormErrors,
@@ -55,13 +60,17 @@ function valuesFromAccount(account: AccountDetail): FormValues {
   return {
     name: account.name,
     email: account.email,
-    contactPhone: account.contactPhone ?? '',
-    guardianPhone: 'guardianPhone' in account ? account.guardianPhone : '',
+    contactPhone: normalizedPhone(account.contactPhone ?? ''),
+    guardianPhone: 'guardianPhone' in account ? normalizedPhone(account.guardianPhone) : '',
   };
 }
 
 function normalizedEmail(value: string): string {
   return value.trim().toLowerCase();
+}
+
+function normalizedPhone(value: string): string {
+  return value.replace(/\D/g, '');
 }
 
 function isStudentAccount(account: AccountDetail): account is StudentAccountDetail {
@@ -82,6 +91,8 @@ interface TextFieldProps {
   readonly required?: boolean;
   readonly autoComplete?: string;
   readonly maxLength?: number;
+  readonly inputMode?: 'numeric';
+  readonly pattern?: string;
   readonly errors: AccountFormErrors;
   onChange(value: string): void;
 }
@@ -94,6 +105,8 @@ function AccountTextField({
   required = false,
   autoComplete,
   maxLength,
+  inputMode,
+  pattern,
   errors,
   onChange,
 }: TextFieldProps) {
@@ -111,8 +124,17 @@ function AccountTextField({
         aria-invalid={messages.length > 0 || undefined}
         className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         id={inputId}
+        inputMode={inputMode}
         maxLength={maxLength}
-        onChange={(event) => onChange(event.currentTarget.value)}
+        onChange={(event) => {
+          const nextValue = event.currentTarget.value;
+          onChange(
+            field === 'contactPhone' || field === 'guardianPhone'
+              ? nextValue.replace(/\D/g, '')
+              : nextValue,
+          );
+        }}
+        pattern={pattern}
         required={required}
         type={type}
         value={value}
@@ -141,6 +163,7 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
   const [errors, setErrors] = useState<AccountFormErrors>(emptyErrors);
   const [saving, setSaving] = useState(false);
   const [localMessage, setLocalMessage] = useState<string | null>(null);
+  const dismissLocalToast = useCallback(() => setLocalMessage(null), []);
   const emailChanged =
     editing && account !== null && normalizedEmail(values.email) !== normalizedEmail(account.email);
 
@@ -237,12 +260,15 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
         changes.email = nextEmail;
         changes.currentPassword = currentPassword;
       }
-      const nextContactPhone = values.contactPhone.trim() || null;
-      if (nextContactPhone !== (account.contactPhone ?? null)) {
+      const nextContactPhone = normalizedPhone(values.contactPhone) || null;
+      if (nextContactPhone !== (normalizedPhone(account.contactPhone ?? '') || null)) {
         changes.contactPhone = nextContactPhone;
       }
-      if (isStudentAccount(account) && values.guardianPhone.trim() !== account.guardianPhone) {
-        changes.guardianPhone = values.guardianPhone.trim();
+      if (
+        isStudentAccount(account) &&
+        normalizedPhone(values.guardianPhone) !== normalizedPhone(account.guardianPhone)
+      ) {
+        changes.guardianPhone = normalizedPhone(values.guardianPhone);
       }
       if (Object.keys(changes).length === 0) {
         setLocalMessage('Nenhuma alteração foi feita.');
@@ -324,20 +350,49 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
     return null;
   }
 
-  const title = editing ? 'Editar conta' : 'Cadastrar conta';
+  const title = editing
+    ? profile === 'student'
+      ? 'Editar conta do aluno'
+      : 'Editar conta'
+    : accountRegisterLabel(profile);
   const description = editing
     ? 'Atualize os dados cadastrais da conta.'
     : 'Informe os dados para cadastrar uma nova conta.';
 
   return (
-    <AccountPageShell profile={profile} description={description}>
+    <AccountPageShell
+      actions={
+        editing && account ? (
+          <Link
+            className="account-button-secondary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            to={
+              accountCollectionPath(profile) + '/' + encodeURIComponent(accountIdentifier(account))
+            }
+          >
+            <Icon name="arrowBack" />
+            Voltar à conta
+          </Link>
+        ) : !editing ? (
+          <Link
+            className="account-button-secondary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            to={accountCollectionPath(profile)}
+          >
+            <Icon name="arrowBack" />
+            Voltar à lista
+          </Link>
+        ) : undefined
+      }
+      description={description}
+      profile={profile}
+      showRegisterAction={!editing}
+    >
       <div className="max-w-3xl">
         <form
           aria-busy={saving}
           className="panel-surface space-y-5 rounded-2xl bg-surface p-5 sm:p-6"
           onSubmit={submit}
         >
-          <h2 className="text-title-large font-semibold text-on-surface">{title}</h2>
+          <h2 className="text-center text-title-large font-semibold text-on-surface">{title}</h2>
           {errors.messages.length > 0 && (
             <div
               aria-live="assertive"
@@ -350,9 +405,7 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
             </div>
           )}
           {localMessage && (
-            <p aria-live="polite" className="text-body-medium text-muted" role="status">
-              {localMessage}
-            </p>
+            <Toast message={localMessage} onDismiss={dismissLocalToast} tone="info" />
           )}
           <AccountTextField
             autoComplete="name"
@@ -381,6 +434,8 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
             field="contactPhone"
             label="Telefone de contato (opcional)"
             onChange={(value) => changeValue('contactPhone', value)}
+            inputMode="numeric"
+            pattern="[0-9]*"
             type="tel"
             value={values.contactPhone}
           />
@@ -391,6 +446,8 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
               field="guardianPhone"
               label="Telefone do responsável"
               onChange={(value) => changeValue('guardianPhone', value)}
+              inputMode="numeric"
+              pattern="[0-9]*"
               required
               type="tel"
               value={values.guardianPhone}
@@ -449,16 +506,18 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
               </div>
             </div>
           )}
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              className="account-button-primary min-h-12 rounded-lg bg-primary px-6 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Button
               disabled={saving}
+              leadingIcon={editing ? 'check' : 'add'}
               type="submit"
+              variant={editing ? 'success' : 'primary'}
+              size="large"
             >
-              {saving ? 'Salvando…' : editing ? 'Salvar alterações' : 'Cadastrar conta'}
-            </button>
+              {saving ? 'Salvando…' : editing ? 'Salvar alterações' : accountRegisterLabel(profile)}
+            </Button>
             <Link
-              className="account-button-secondary inline-flex min-h-12 items-center justify-center rounded-lg border border-panel-outline px-6 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className={actionClassName('secondary', 'large')}
               to={
                 editing && account
                   ? accountCollectionPath(profile) +
@@ -467,6 +526,7 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
                   : accountCollectionPath(profile)
               }
             >
+              <Icon name="close" />
               Cancelar
             </Link>
           </div>

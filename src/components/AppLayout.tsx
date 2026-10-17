@@ -15,6 +15,23 @@ function navigationItemClass(isActive: boolean, inDrawer = false): string {
   return `inline-flex min-h-11 items-center gap-2 rounded-control px-3 py-2 text-label-large font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${layoutClass} ${stateClass}`;
 }
 
+function focusDesktopNavigationLink(navigation: HTMLElement | null) {
+  if (!navigation) return;
+
+  const links = Array.from(navigation.querySelectorAll<HTMLAnchorElement>('a[href]'));
+  const visibleLinks = links.filter(
+    (link) =>
+      link.getClientRects().length > 0 &&
+      getComputedStyle(link).visibility === 'visible' &&
+      !link.closest('[hidden], [aria-hidden="true"]'),
+  );
+  const activeLink = visibleLinks.find((link) => link.getAttribute('aria-current') === 'page');
+  const hasActiveLink = links.some((link) => link.getAttribute('aria-current') === 'page');
+  const target = activeLink ?? (!hasActiveLink ? visibleLinks[0] : undefined);
+
+  target?.focus();
+}
+
 export function AppLayout() {
   const auth = useAuth();
   const navigate = useNavigate();
@@ -46,18 +63,6 @@ export function AppLayout() {
     }
 
     if (drawer.open) drawer.close();
-    if (drawerWasOpen.current) {
-      drawerWasOpen.current = false;
-      if (focusDesktopNavigationAfterClose.current) {
-        focusDesktopNavigationAfterClose.current = false;
-        const activeLink =
-          desktopNavigationRef.current?.querySelector<HTMLAnchorElement>('a[aria-current="page"]');
-        const firstLink = desktopNavigationRef.current?.querySelector<HTMLAnchorElement>('a');
-        (activeLink ?? firstLink)?.focus();
-      } else {
-        navigationButtonRef.current?.focus();
-      }
-    }
   }, [navigationOpen]);
 
   useEffect(() => {
@@ -172,11 +177,54 @@ export function AppLayout() {
         aria-labelledby="compact-admin-navigation-title"
         className="fixed inset-0 m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 text-on-surface backdrop:bg-black/40 lg:hidden"
         id="compact-admin-navigation"
+        onKeyDown={(event) => {
+          if (event.key !== 'Tab') return;
+
+          const focusableElements = Array.from(
+            event.currentTarget.querySelectorAll<HTMLElement>(
+              'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ),
+          ).filter(
+            (element) =>
+              !element.hasAttribute('hidden') &&
+              element.getAttribute('aria-hidden') !== 'true' &&
+              !element.hasAttribute('disabled'),
+          );
+          const firstElement = focusableElements[0];
+          const lastElement = focusableElements[focusableElements.length - 1];
+          if (!firstElement || !lastElement) return;
+
+          const focusIsOutsideDrawer = !event.currentTarget.contains(document.activeElement);
+          if (event.shiftKey && (document.activeElement === firstElement || focusIsOutsideDrawer)) {
+            event.preventDefault();
+            lastElement.focus();
+          } else if (
+            !event.shiftKey &&
+            (document.activeElement === lastElement || focusIsOutsideDrawer)
+          ) {
+            event.preventDefault();
+            firstElement.focus();
+          }
+        }}
         onCancel={() => setNavigationOpen(false)}
         onClick={(event) => {
           if (event.target === event.currentTarget) setNavigationOpen(false);
         }}
-        onClose={() => setNavigationOpen(false)}
+        onClose={(event) => {
+          const drawer = event.currentTarget;
+          if (drawer.open) return;
+
+          setNavigationOpen(false);
+          if (!drawerWasOpen.current) return;
+
+          drawerWasOpen.current = false;
+          if (focusDesktopNavigationAfterClose.current) {
+            focusDesktopNavigationAfterClose.current = false;
+            focusDesktopNavigationLink(desktopNavigationRef.current);
+          } else {
+            navigationButtonRef.current?.focus();
+          }
+        }}
         ref={navigationDrawerRef}
       >
         <div className="min-h-full w-72 max-w-[calc(100vw-3rem)] bg-surface p-4 shadow-menu">

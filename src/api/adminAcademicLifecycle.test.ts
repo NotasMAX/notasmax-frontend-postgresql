@@ -126,6 +126,7 @@ describe('academic lifecycle API boundary', () => {
         classId: '4',
         startDate: '2026-02-01',
         cancellationDate: null,
+        cancellationRequestedAt: null,
       },
       headers: { etag: '"enrollment-current"' },
     } as never);
@@ -137,6 +138,16 @@ describe('academic lifecycle API boundary', () => {
     expect(apiClient.post).toHaveBeenCalledWith(
       '/api/v1/admin/enrollments/51/cancellations',
       { cancellationDate: '2026-10-20' },
+      { headers: { 'If-Match': '"enrollment-current"' } },
+    );
+  });
+
+  it('sends an empty cancellation payload for an enrollment cancelled before it starts', async () => {
+    await cancelAdminEnrollment('51', undefined, '"enrollment-current"');
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/v1/admin/enrollments/51/cancellations',
+      {},
       { headers: { 'If-Match': '"enrollment-current"' } },
     );
   });

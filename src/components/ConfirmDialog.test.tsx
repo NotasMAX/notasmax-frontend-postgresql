@@ -98,6 +98,50 @@ describe('ConfirmDialog', () => {
     expect(document.activeElement).toBe(opener);
   });
 
+  it('cycles through enabled child fields and actions in both directions', async () => {
+    const user = userEvent.setup();
+    render(
+      <ConfirmDialog
+        confirmLabel="Confirmar"
+        onCancel={vi.fn()}
+        onConfirm={vi.fn()}
+        title="Confirmar ação"
+      >
+        <label>
+          Data
+          <input aria-label="Data" autoFocus type="date" />
+        </label>
+        <label>
+          Campo desabilitado
+          <input aria-label="Campo desabilitado" disabled />
+        </label>
+      </ConfirmDialog>,
+    );
+
+    const date = screen.getByLabelText('Data');
+    const disabledField = screen.getByLabelText('Campo desabilitado');
+    const cancel = screen.getByRole('button', { name: 'Cancelar' });
+    const confirm = screen.getByRole('button', { name: 'Confirmar' });
+
+    expect(document.activeElement).toBe(date);
+    expect((disabledField as HTMLInputElement).disabled).toBe(true);
+
+    await user.tab();
+    expect(document.activeElement).toBe(cancel);
+    await user.tab();
+    expect(document.activeElement).toBe(confirm);
+    await user.tab();
+    expect(document.activeElement).toBe(date);
+
+    await user.tab({ shift: true });
+    expect(document.activeElement).toBe(confirm);
+    await user.tab({ shift: true });
+    expect(document.activeElement).toBe(cancel);
+    await user.tab({ shift: true });
+    expect(document.activeElement).toBe(date);
+    expect(document.activeElement).not.toBe(disabledField);
+  });
+
   it('supports rich child content, API errors, and disabling confirmation', async () => {
     const onConfirm = vi.fn();
     render(

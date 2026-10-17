@@ -54,7 +54,8 @@ describe('existing-student enrollment', () => {
     const user = userEvent.setup();
     renderPage();
 
-    expect(screen.queryByLabelText('Turma')).toBeNull();
+    expect(screen.queryByLabelText('Ano letivo')).toBeNull();
+    expect(screen.queryByLabelText('Série')).toBeNull();
     expect(
       screen.getByText('Escolha um aluno, uma turma e a data de início para criar a matrícula.'),
     ).toBeTruthy();
@@ -62,11 +63,19 @@ describe('existing-student enrollment', () => {
       'text-label-large',
     );
     await user.click(screen.getByRole('button', { name: 'Buscar' }));
-    await screen.findByLabelText('Aluno');
-    expect(screen.queryByLabelText('Turma')).toBeNull();
+    const studentCard = await screen.findByRole('button', { name: /Ana.*ana@example\.test/ });
+    expect(studentCard.getAttribute('aria-pressed')).toBe('false');
+    expect(studentCard.closest('section')?.previousElementSibling).toBe(
+      screen.getByRole('button', { name: 'Buscar' }).closest('form'),
+    );
+    expect(screen.queryByLabelText('Ano letivo')).toBeNull();
+    expect(screen.queryByLabelText('Série')).toBeNull();
 
-    await user.selectOptions(screen.getByLabelText('Aluno'), '12');
-    expect(screen.getByLabelText('Turma')).toBeTruthy();
+    studentCard.focus();
+    await user.keyboard('{Enter}');
+    expect(studentCard.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByLabelText('Ano letivo')).toBeTruthy();
+    expect(screen.getByLabelText('Série')).toBeTruthy();
     expect(screen.getByLabelText('Data de início')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Cancelar' }).className).toContain(
       'border-panel-outline',
@@ -79,8 +88,9 @@ describe('existing-student enrollment', () => {
     renderPage();
     await user.type(screen.getByLabelText('Buscar aluno sem matrícula ativa'), 'Ana');
     await user.click(screen.getByRole('button', { name: 'Buscar' }));
-    await user.selectOptions(await screen.findByLabelText('Aluno'), '12');
-    await user.selectOptions(screen.getByLabelText('Turma'), '44');
+    await user.click(await screen.findByRole('button', { name: /Ana.*ana@example\.test/ }));
+    await user.selectOptions(screen.getByLabelText('Ano letivo'), '2026');
+    await user.selectOptions(screen.getByLabelText('Série'), '44');
     fireEvent.change(screen.getByLabelText('Data de início'), { target: { value: '2026-02-01' } });
     await user.click(screen.getByRole('button', { name: 'Criar matrícula' }));
     await waitFor(() => expect(lifecycle.startAcademicEnrollment).toHaveBeenCalledOnce());
@@ -134,6 +144,7 @@ describe('existing-student enrollment', () => {
         classId: '43',
         startDate: '2025-02-01',
         cancellationDate: null,
+        cancellationRequestedAt: null,
       },
       etag: '"enrollment-v1"',
     });
@@ -141,8 +152,9 @@ describe('existing-student enrollment', () => {
     renderPage();
     await user.type(screen.getByLabelText('Buscar aluno sem matrícula ativa'), 'Ana');
     await user.click(screen.getByRole('button', { name: 'Buscar' }));
-    await user.selectOptions(await screen.findByLabelText('Aluno'), '12');
-    await user.selectOptions(screen.getByLabelText('Turma'), '44');
+    await user.click(await screen.findByRole('button', { name: /Ana.*ana@example\.test/ }));
+    await user.selectOptions(screen.getByLabelText('Ano letivo'), '2026');
+    await user.selectOptions(screen.getByLabelText('Série'), '44');
     fireEvent.change(screen.getByLabelText('Data de início'), { target: { value: '2026-02-01' } });
     await user.click(screen.getByRole('button', { name: 'Criar matrícula' }));
     expect(
@@ -177,14 +189,16 @@ describe('existing-student enrollment', () => {
         classId: '43',
         startDate: '2025-02-01',
         cancellationDate: null,
+        cancellationRequestedAt: null,
       },
       etag: '"enrollment-v1"',
     });
     renderPage();
     await user.type(screen.getByLabelText('Buscar aluno sem matrícula ativa'), 'Ana');
     await user.click(screen.getByRole('button', { name: 'Buscar' }));
-    await user.selectOptions(await screen.findByLabelText('Aluno'), '12');
-    await user.selectOptions(screen.getByLabelText('Turma'), '44');
+    await user.click(await screen.findByRole('button', { name: /Ana.*ana@example\.test/ }));
+    await user.selectOptions(screen.getByLabelText('Ano letivo'), '2026');
+    await user.selectOptions(screen.getByLabelText('Série'), '44');
     fireEvent.change(screen.getByLabelText('Data de início'), {
       target: { value: '2026-02-01' },
     });

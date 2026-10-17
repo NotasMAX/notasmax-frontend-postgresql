@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import type { AccountProfile, ActivationEmailStatus } from '../../api/adminAccounts';
+import type {
+  AccountProfile,
+  ActivationEmailStatus,
+  StudentEnrollmentHistoryItem,
+} from '../../api/adminAccounts';
 import {
   accountIdentifier,
   loadAccountDetail,
@@ -9,17 +13,16 @@ import {
 } from '../../accounts/accountService';
 import { AccountPageShell } from './AccountPageShell';
 import { Badge } from '../../components/Badge';
+import { Icon } from '../../components/Icon';
 import { Toast, type ToastTone } from '../../components/Toast';
-import { ActiveEnrollmentCancellation } from '../adminAcademic/ActiveEnrollmentCancellation';
+import { EnrollmentCancellation } from '../adminAcademic/EnrollmentCancellation';
 import {
   accountCollectionPath,
   accountErrorMessage,
   activationFeedback,
   activationStatusLabel,
   activationStatusTone,
-  classLabel,
   civilDateLabel,
-  enrollmentStatusLabel,
 } from './accountUi';
 
 interface AccountDetailPageProps {
@@ -53,8 +56,30 @@ function isStudentDetail(account: AccountDetail) {
   return 'studentId' in account;
 }
 
+function newestEnrollmentFirst(
+  left: StudentEnrollmentHistoryItem,
+  right: StudentEnrollmentHistoryItem,
+): number {
+  const leftId = BigInt(left.enrollmentId);
+  const rightId = BigInt(right.enrollmentId);
+  return leftId > rightId ? -1 : leftId < rightId ? 1 : 0;
+}
+
+function saoPauloCivilDate(date: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const value = (type: 'year' | 'month' | 'day') =>
+    parts.find((part) => part.type === type)?.value ?? '';
+  return `${value('year')}-${value('month')}-${value('day')}`;
+}
+
 export function AccountDetailPage({ profile, accountId, locationState }: AccountDetailPageProps) {
   const notice = readNotice(locationState);
+  const currentCivilDate = saoPauloCivilDate();
   const [noticeMessage, setNoticeMessage] = useState(notice.message ?? null);
   const [account, setAccount] = useState<AccountDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -124,14 +149,15 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
       actions={
         <>
           <Link
-            className="account-button-secondary inline-flex min-h-11 items-center rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="account-button-secondary inline-flex min-h-11 items-center gap-2 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             to={accountCollectionPath(profile)}
           >
+            <Icon name="arrowBack" />
             Voltar à lista
           </Link>
           {account && (
             <Link
-              className="account-button-primary inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="account-button-primary inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               to={
                 accountCollectionPath(profile) +
                 '/' +
@@ -139,14 +165,16 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
                 '/editar'
               }
             >
+              <Icon name="edit" />
               Editar conta
             </Link>
           )}
           {account && isStudentDetail(account) && (
             <Link
-              className="account-button-primary inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary"
+              className="account-button-primary inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary"
               to="/admin/estrutura/matriculas/nova"
             >
+              <Icon name="add" />
               Nova matrícula
             </Link>
           )}
@@ -242,44 +270,31 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
               )}
               {isStudentDetail(account) && (
                 <>
-                  <div>
-                    <dt className="text-label-medium font-semibold text-muted">
-                      Situação da matrícula
-                    </dt>
-                    <dd className="text-body-large text-on-surface">
-                      {enrollmentStatusLabel(account.enrollmentStatus)}
-                    </dd>
-                  </div>
                   <div className="sm:col-span-2">
-                    <ActiveEnrollmentCancellation
-                      onCompleted={() => void refresh()}
-                      student={account}
-                    />
-                  </div>
-                  <div>
-                    <dt className="text-label-medium font-semibold text-muted">
-                      Turma associada à matrícula ativa
-                    </dt>
-                    <dd className="text-body-large text-on-surface">
-                      {account.currentClass ? classLabel(account.currentClass) : 'Nenhuma'}
-                    </dd>
+                    <p className="text-body-medium text-muted">
+                      A situação atual e as ações de cancelamento aparecem no histórico abaixo.
+                    </p>
                   </div>
                 </>
               )}
             </dl>
             {account.activationStatus === 'pending' && (
-              <div className="space-y-2 border-t border-outline pt-4">
-                <p className="text-body-medium text-muted">
-                  Esta conta ainda precisa ser ativada. Você pode reenviar o link.
-                </p>
-                <button
-                  className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
-                  disabled={resending}
-                  onClick={() => void resend()}
-                  type="button"
-                >
-                  {resending ? 'Solicitando…' : 'Reenviar ativação'}
-                </button>
+              <div className="border-t border-outline pt-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="min-w-0 flex-1 text-body-medium text-muted">
+                    <span className="block sm:inline">Esta conta ainda precisa ser ativada.</span>{' '}
+                    <span className="block sm:inline">Você pode reenviar o link.</span>
+                  </p>
+                  <button
+                    className="account-button-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2 self-end rounded-lg bg-success px-4 text-label-large font-semibold text-on-primary hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-success disabled:cursor-wait disabled:opacity-70 sm:self-auto"
+                    disabled={resending}
+                    onClick={() => void resend()}
+                    type="button"
+                  >
+                    <Icon name="refresh" />
+                    {resending ? 'Solicitando…' : 'Reenviar ativação'}
+                  </button>
+                </div>
               </div>
             )}
           </section>
@@ -298,30 +313,73 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
                 <p className="text-body-medium text-muted">Nenhuma matrícula registrada.</p>
               ) : (
                 <ul className="space-y-3">
-                  {account.enrollments.map((enrollment) => (
-                    <li
-                      className="rounded-xl border border-outline p-4"
-                      key={enrollment.enrollmentId}
-                    >
-                      <h3 className="text-title-small font-semibold text-on-surface">
-                        {classLabel(enrollment.class)}
-                      </h3>
-                      <dl className="mt-2 grid gap-2 text-body-medium sm:grid-cols-2">
-                        <div>
-                          <dt className="font-semibold">Início</dt>
-                          <dd>{civilDateLabel(enrollment.startDate)}</dd>
-                        </div>
-                        <div>
-                          <dt className="font-semibold">Cancelamento</dt>
-                          <dd>
-                            {enrollment.cancellationDate
-                              ? civilDateLabel(enrollment.cancellationDate)
-                              : 'Não informado'}
-                          </dd>
-                        </div>
-                      </dl>
-                    </li>
-                  ))}
+                  {[...account.enrollments].sort(newestEnrollmentFirst).map((enrollment) => {
+                    const cancelledBeforeStart =
+                      enrollment.cancellationDate === null &&
+                      enrollment.cancellationRequestedAt !== null;
+                    const finalizationDate =
+                      enrollment.cancellationDate ??
+                      (cancelledBeforeStart && enrollment.cancellationRequestedAt !== null
+                        ? saoPauloCivilDate(new Date(enrollment.cancellationRequestedAt))
+                        : null);
+                    const cancelled =
+                      enrollment.cancellationRequestedAt !== null &&
+                      (enrollment.cancellationDate === null ||
+                        enrollment.cancellationDate <= currentCivilDate);
+                    const open =
+                      enrollment.cancellationDate === null &&
+                      enrollment.cancellationRequestedAt === null;
+                    const active =
+                      open &&
+                      account.enrollmentStatus === 'active' &&
+                      account.currentClass?.series === enrollment.class.series &&
+                      account.currentClass.schoolYear === enrollment.class.schoolYear;
+
+                    return (
+                      <li key={enrollment.enrollmentId}>
+                        <article
+                          aria-labelledby={'enrollment-history-' + enrollment.enrollmentId}
+                          className="panel-surface grid gap-4 rounded-2xl bg-surface p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-start"
+                        >
+                          <div className="min-w-0 space-y-3">
+                            <h3
+                              className="text-title-medium font-semibold text-on-surface"
+                              id={'enrollment-history-' + enrollment.enrollmentId}
+                            >
+                              {enrollment.class.series}ª série · {enrollment.class.schoolYear}
+                            </h3>
+                            <dl className="grid gap-3 text-body-medium sm:grid-cols-2">
+                              <div>
+                                <dt className="font-semibold">Início</dt>
+                                <dd>{civilDateLabel(enrollment.startDate)}</dd>
+                              </div>
+                              {finalizationDate !== null && (
+                                <div>
+                                  <dt className="font-semibold">Data de finalização</dt>
+                                  <dd>{civilDateLabel(finalizationDate)}</dd>
+                                </div>
+                              )}
+                            </dl>
+                          </div>
+                          <div className="flex flex-wrap items-center justify-between gap-3 sm:flex-col sm:items-end sm:justify-start">
+                            {active && <Badge tone="positive">Matrícula ativa</Badge>}
+                            {cancelledBeforeStart && (
+                              <Badge tone="neutral">Cancelada antes do início</Badge>
+                            )}
+                            {cancelled && !cancelledBeforeStart && (
+                              <Badge tone="neutral">Matrícula cancelada</Badge>
+                            )}
+                            {open && (
+                              <EnrollmentCancellation
+                                enrollmentId={enrollment.enrollmentId}
+                                onCompleted={() => void refresh()}
+                              />
+                            )}
+                          </div>
+                        </article>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </section>

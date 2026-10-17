@@ -3,6 +3,7 @@ import type { ButtonSize, ButtonVariant } from './Button';
 const variantClasses: Readonly<Record<ButtonVariant, string>> = {
   primary: 'border-transparent bg-primary font-semibold text-on-primary hover:bg-primary-hover',
   secondary: 'border-outline bg-surface font-medium text-primary hover:bg-surface-container',
+  success: 'border-transparent bg-success font-semibold text-on-primary hover:brightness-95',
   danger: 'border-danger bg-danger font-semibold text-on-primary hover:bg-danger-hover',
   text: 'border-transparent bg-transparent font-medium text-primary hover:bg-surface-container',
 };

@@ -20,6 +20,7 @@ export interface EnrollmentRepresentation {
   readonly classId: string;
   readonly startDate: string;
   readonly cancellationDate: string | null;
+  readonly cancellationRequestedAt: string | null;
 }
 
 export interface EnrollmentCreateInput {
@@ -129,12 +130,12 @@ export async function getAdminEnrollment(
 
 export async function cancelAdminEnrollment(
   enrollmentId: string,
-  cancellationDate: string,
+  cancellationDate: string | undefined,
   etag: string,
 ): Promise<void> {
   await apiClient.post(
     `/api/v1/admin/enrollments/${resourcePath(enrollmentId)}/cancellations`,
-    { cancellationDate },
+    cancellationDate ? { cancellationDate } : {},
     { headers: { 'If-Match': etag } },
   );
 }

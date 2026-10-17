@@ -5,18 +5,22 @@ export type IconName =
   | 'add'
   | 'arrowBack'
   | 'check'
+  | 'clear'
   | 'close'
   | 'delete'
   | 'edit'
   | 'error'
   | 'expandMore'
+  | 'filter'
   | 'home'
   | 'info'
   | 'logout'
   | 'menu'
   | 'people'
+  | 'refresh'
   | 'search'
   | 'simulations'
+  | 'view'
   | 'warning';
 
 interface IconProps {
@@ -35,6 +39,7 @@ const paths: Readonly<Record<IconName, ReactNode>> = {
   add: <path d="M12 5v14M5 12h14" />,
   arrowBack: <path d="m14 6-6 6 6 6M8 12h12" />,
   check: <path d="m5 12 4 4L19 6" />,
+  clear: <path d="m6 6 12 12M18 6 6 18" />,
   close: <path d="m6 6 12 12M18 6 6 18" />,
   delete: (
     <>
@@ -55,6 +60,7 @@ const paths: Readonly<Record<IconName, ReactNode>> = {
     </>
   ),
   expandMore: <path d="m7 10 5 5 5-5" />,
+  filter: <path d="M4 5h16M7 12h10m-7 7h4" />,
   home: <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z" />,
   info: (
     <>
@@ -75,6 +81,7 @@ const paths: Readonly<Record<IconName, ReactNode>> = {
       <path d="M3.5 20a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.8M17 14a5.5 5.5 0 0 1 3.5 5" />
     </>
   ),
+  refresh: <path d="M20 7v5h-5M4 17v-5h5m10.5-4A7 7 0 0 0 7 6L5 8m14 8-2 2a7 7 0 0 1-12.5-2" />,
   search: (
     <>
       <circle cx="10.8" cy="10.8" r="6.8" />
@@ -82,6 +89,12 @@ const paths: Readonly<Record<IconName, ReactNode>> = {
     </>
   ),
   simulations: <path d="M4 5h16v14H4zM8 9h8M8 13h5M8 16h3" />,
+  view: (
+    <>
+      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
+      <circle cx="12" cy="12" r="2.5" />
+    </>
+  ),
   warning: (
     <>
       <path d="M10.3 3.9 1.8 18.2A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z" />

@@ -58,12 +58,14 @@ const studentDetail: StudentAccountDetail = {
       class: { series: 9, schoolYear: 2026 },
       startDate: '2026-02-01',
       cancellationDate: null,
+      cancellationRequestedAt: null,
     },
     {
       enrollmentId: '8001',
       class: { series: 8, schoolYear: 2025 },
       startDate: '2025-02-01',
       cancellationDate: '2025-12-15',
+      cancellationRequestedAt: null,
     },
   ],
 };
@@ -179,6 +181,44 @@ afterEach(() => {
 });
 
 describe('account management pages', () => {
+  it('makes the full account card the link to its details', async () => {
+    vi.mocked(accountService.loadAccountPage).mockResolvedValue(page([student]));
+    renderAt('/admin/contas/alunos');
+
+    const heading = await screen.findByRole('heading', { name: 'Ada Lovelace' });
+    expect(heading.closest('a')?.getAttribute('href')).toBe('/admin/contas/alunos/101');
+    expect(screen.getByRole('link', { name: /Ver detalhes/ })).toBeTruthy();
+    expect(await screen.findByRole('status')).toHaveProperty(
+      'textContent',
+      '1 aluno encontrado · página 1 de 1',
+    );
+    const registerLink = screen.getByRole('link', { name: 'Cadastrar aluno' });
+    expect(registerLink.querySelector('svg')).toBeTruthy();
+    expect(heading.closest('a')?.className).toContain('hover:border-primary');
+    expect(heading.closest('a')?.className).not.toContain('hover:bg-surface-container');
+    expect(screen.getByRole('link', { name: /Ver detalhes/ }).className).toContain(
+      'sm:items-center',
+    );
+  });
+
+  it('uses a plural student count in the list summary', async () => {
+    vi.mocked(accountService.loadAccountPage).mockResolvedValue(
+      page([student, { ...student, studentId: '102', name: 'Grace Hopper' }]),
+    );
+    renderAt('/admin/contas/alunos');
+
+    const status = await screen.findByRole('status');
+    expect(status).toHaveProperty('textContent', '2 alunos encontrados · página 1 de 1');
+    const pagination = screen.getByRole('navigation', { name: 'Paginação de contas' });
+    expect(status.parentElement?.firstElementChild).toBe(pagination);
+    const detailActions = screen.getAllByText('Ver detalhes');
+    expect(detailActions).toHaveLength(2);
+    for (const detailAction of detailActions) {
+      expect(detailAction.closest('span')?.className).toContain('group-hover:bg-primary');
+      expect(detailAction.closest('span')?.className).toContain('group-hover:text-on-primary');
+    }
+  });
+
   it('keeps the newest account list when an older filter request resolves last', async () => {
     const initialRequest = deferred<Awaited<ReturnType<typeof accountService.loadAccountPage>>>();
     const filteredRequest = deferred<Awaited<ReturnType<typeof accountService.loadAccountPage>>>();
@@ -234,7 +274,12 @@ describe('account management pages', () => {
     );
     renderAt('/admin/contas/professores/55');
 
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Reenviar ativação' }));
+    const resendButton = await screen.findByRole('button', { name: 'Reenviar ativação' });
+    const activationNotice = screen.getByText('Esta conta ainda precisa ser ativada.');
+    const activationLayout = activationNotice.parentElement?.parentElement;
+    expect(activationLayout?.className).toContain('sm:flex-row');
+    expect(resendButton.parentElement).toBe(activationLayout);
+    await userEvent.setup().click(resendButton);
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Não foi possível concluir esta ação. Tente novamente.',
     );
@@ -251,7 +296,7 @@ describe('account management pages', () => {
 
     expect(await screen.findByText('Ada Lovelace')).toBeTruthy();
     expect(screen.getByText('Com matrícula ativa', { selector: 'span' })).toBeTruthy();
-    expect(screen.getByText('9ª série · ano letivo 2026')).toBeTruthy();
+    expect(screen.getByText('9ª série · 2026')).toBeTruthy();
     expect(screen.getByLabelText('Ativação')).toBeTruthy();
     expect(screen.getByLabelText('Matrícula')).toBeTruthy();
     expect(screen.getByLabelText('Ano letivo')).toBeTruthy();
@@ -334,22 +379,45 @@ describe('account management pages', () => {
     expect(screen.queryByLabelText('ID da matéria')).toBeNull();
   });
 
-  it('shows student enrollment history as read-only detail', async () => {
+  it('marks the active enrollment in history and offers its cancellation action', async () => {
     vi.mocked(accountService.loadAccountDetail).mockResolvedValue(studentDetail);
     renderAt('/admin/contas/alunos/101');
 
     expect(await screen.findByRole('heading', { name: 'Histórico de matrículas' })).toBeTruthy();
     expect(screen.getByText('01/02/2026')).toBeTruthy();
     expect(screen.getByText('15/12/2025')).toBeTruthy();
-    expect(screen.getByText('8ª série · ano letivo 2025')).toBeTruthy();
+    expect(screen.getByText('8ª série · 2025')).toBeTruthy();
     expect(
-      within(screen.getByRole('region', { name: 'Histórico de matrículas' })).queryByRole('button'),
-    ).toBeNull();
+      within(screen.getByRole('region', { name: 'Histórico de matrículas' })).getByRole('article', {
+        name: '8ª série · 2025',
+      }),
+    ).toBeTruthy();
+    expect(screen.getByText('Matrícula ativa')).toBeTruthy();
+    expect(
+      within(screen.getByRole('region', { name: 'Histórico de matrículas' })).getByRole('button', {
+        name: 'Cancelar matrícula',
+      }),
+    ).toBeTruthy();
+    expect(screen.queryByText('Turma associada à matrícula ativa')).toBeNull();
     expect(
       screen.queryByRole('button', { name: /editar matrícula|excluir matrícula/i }),
     ).toBeNull();
     expect(screen.queryByRole('button', { name: /excluir|desativar/i })).toBeNull();
     expect(screen.getByRole('link', { name: 'Editar conta' })).toBeTruthy();
+  });
+
+  it('shows a toast when the student edit form has no changes', async () => {
+    vi.mocked(accountService.loadAccountDetail).mockResolvedValue(studentDetail);
+    renderAt('/admin/contas/alunos/101/editar');
+    const user = userEvent.setup();
+
+    expect(await screen.findByRole('heading', { name: 'Editar conta do aluno' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+
+    expect((await screen.findByRole('status')).textContent).toContain(
+      'Nenhuma alteração foi feita.',
+    );
+    expect(accountService.updateAccount).not.toHaveBeenCalled();
   });
 
   it('opens the created account details and shows a success toast', async () => {
@@ -359,14 +427,25 @@ describe('account management pages', () => {
     renderAt('/admin/contas/alunos/novo');
     const user = userEvent.setup();
 
+    expect(screen.getByRole('link', { name: 'Voltar à lista' }).getAttribute('href')).toBe(
+      '/admin/contas/alunos',
+    );
+    expect(screen.getByRole('link', { name: 'Cadastrar aluno' })).toBeTruthy();
+
     await user.type(screen.getByLabelText('Nome completo'), 'Katherine Johnson');
     await user.type(screen.getByLabelText('E-mail institucional'), 'katherine@example.test');
-    await user.type(screen.getByLabelText('Telefone do responsável'), '555-0101');
-    await user.click(screen.getByRole('button', { name: 'Cadastrar conta' }));
+    await user.type(screen.getByLabelText('Telefone de contato (opcional)'), '11 99988-7766');
+    await user.type(screen.getByLabelText('Telefone do responsável'), '55a-0101');
+    expect(screen.getByLabelText('Telefone de contato (opcional)')).toHaveProperty(
+      'value',
+      '11999887766',
+    );
+    expect(screen.getByLabelText('Telefone do responsável')).toHaveProperty('value', '550101');
+    await user.click(screen.getByRole('button', { name: 'Cadastrar aluno' }));
 
     expect(await screen.findByRole('heading', { name: 'Katherine Johnson' })).toBeTruthy();
     expect(
-      await screen.findByText('Conta cadastrada com sucesso. Solicitação de ativação recebida.'),
+      await screen.findByText('Conta cadastrada com sucesso. Solicitação de ativação enviada.'),
     ).toBeTruthy();
     await waitFor(() =>
       expect(accountService.loadAccountPage).toHaveBeenCalledWith('student', {
@@ -378,7 +457,8 @@ describe('account management pages', () => {
     expect(accountService.createAccount).toHaveBeenCalledWith('student', {
       name: 'Katherine Johnson',
       email: 'katherine@example.test',
-      guardianPhone: '555-0101',
+      guardianPhone: '550101',
+      contactPhone: '11999887766',
     });
   });
 
@@ -391,7 +471,7 @@ describe('account management pages', () => {
     await user.type(screen.getByLabelText('Nome completo'), 'Katherine Johnson');
     await user.type(screen.getByLabelText('E-mail institucional'), 'katherine@example.test');
     await user.type(screen.getByLabelText('Telefone do responsável'), '555-0101');
-    await user.click(screen.getByRole('button', { name: 'Cadastrar conta' }));
+    await user.click(screen.getByRole('button', { name: 'Cadastrar aluno' }));
 
     expect(await screen.findByRole('heading', { name: 'Contas de alunos' })).toBeTruthy();
     expect(
@@ -429,7 +509,7 @@ describe('account management pages', () => {
     });
 
     await user.click(await screen.findByRole('button', { name: 'Reenviar ativação' }));
-    expect(await screen.findByText('Solicitação de ativação recebida.')).toBeTruthy();
+    expect(await screen.findByText('Solicitação de ativação enviada.')).toBeTruthy();
     expect(accountService.resendActivation).toHaveBeenCalledWith('55');
   });
 

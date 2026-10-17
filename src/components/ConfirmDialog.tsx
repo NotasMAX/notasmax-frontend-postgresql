@@ -21,6 +21,46 @@ type ConfirmDialogContentProps =
 
 export type ConfirmDialogProps = ConfirmDialogCommonProps & ConfirmDialogContentProps;
 
+const focusableSelector = [
+  'a[href]',
+  'area[href]',
+  'button',
+  'input:not([type="hidden"])',
+  'select',
+  'textarea',
+  'iframe',
+  'object',
+  'embed',
+  'audio[controls]',
+  'video[controls]',
+  'summary',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[tabindex]',
+].join(', ');
+
+function getFocusableElements(dialog: HTMLElement): HTMLElement[] {
+  const elements = Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector));
+  return elements.filter((element) => {
+    if (element.tabIndex < 0 || element.matches(':disabled')) return false;
+    if (element.closest('[hidden], [inert], [aria-hidden="true"]')) return false;
+
+    let ancestor: HTMLElement | null = element;
+    while (ancestor && dialog.contains(ancestor)) {
+      const style = window.getComputedStyle(ancestor);
+      if (
+        style.display === 'none' ||
+        style.visibility === 'hidden' ||
+        style.visibility === 'collapse'
+      ) {
+        return false;
+      }
+      ancestor = ancestor.parentElement;
+    }
+
+    return true;
+  });
+}
+
 export function ConfirmDialog({
   title,
   description,
@@ -37,8 +77,6 @@ export function ConfirmDialog({
   const titleId = useId();
   const descriptionId = useId();
   const contentId = useId();
-  const cancelRef = useRef<HTMLButtonElement>(null);
-  const confirmRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const onCancelRef = useRef(onCancel);
@@ -58,11 +96,26 @@ export function ConfirmDialog({
       )
       .map((element) => ({ element, wasInert: element.inert }));
     for (const { element } of inertedElements) element.inert = true;
-    cancelRef.current?.focus();
+
+    function focusFirstAvailableElement() {
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      (getFocusableElements(dialog)[0] ?? dialog).focus();
+    }
+
+    const dialog = dialogRef.current;
+    const focusedElement = document.activeElement;
+    if (
+      !dialog ||
+      !(focusedElement instanceof HTMLElement) ||
+      !getFocusableElements(dialog).includes(focusedElement)
+    ) {
+      focusFirstAvailableElement();
+    }
 
     function containFocus(event: FocusEvent) {
       if (event.target instanceof Node && !dialogRef.current?.contains(event.target)) {
-        cancelRef.current?.focus();
+        focusFirstAvailableElement();
       }
     }
 
@@ -78,20 +131,28 @@ export function ConfirmDialog({
         event.preventDefault();
         onCancelRef.current();
       } else if (event.key === 'Tab') {
-        const first = cancelRef.current;
-        const last = confirmRef.current;
-        if (!first || !last) return;
-        if (!dialogRef.current?.contains(document.activeElement)) {
+        const currentDialog = dialogRef.current;
+        if (!currentDialog) return;
+        const focusableElements = getFocusableElements(currentDialog);
+        if (focusableElements.length === 0) {
           event.preventDefault();
-          (event.shiftKey ? last : first).focus();
+          currentDialog.focus();
           return;
         }
-        if (event.shiftKey && document.activeElement === first) {
+
+        const activeIndex = focusableElements.indexOf(document.activeElement as HTMLElement);
+        if (activeIndex === -1) {
           event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
+          const target = event.shiftKey
+            ? focusableElements[focusableElements.length - 1]
+            : focusableElements[0];
+          target?.focus();
+        } else if (event.shiftKey && activeIndex === 0) {
           event.preventDefault();
-          first.focus();
+          focusableElements[focusableElements.length - 1]?.focus();
+        } else if (!event.shiftKey && activeIndex === focusableElements.length - 1) {
+          event.preventDefault();
+          focusableElements[0]?.focus();
         }
       }
     }
@@ -123,6 +184,7 @@ export function ConfirmDialog({
         className="panel-surface dialog-surface max-h-[90vh] w-full max-w-lg space-y-5 overflow-y-auto bg-surface p-6"
         ref={dialogRef}
         role="alertdialog"
+        tabIndex={-1}
       >
         <div className="space-y-2">
           <h2 className="text-title-large font-semibold text-on-surface" id={titleId}>
@@ -141,20 +203,13 @@ export function ConfirmDialog({
         </div>
         {errorMessage && <Alert tone="danger">{errorMessage}</Alert>}
         <div className="flex flex-wrap justify-end gap-3">
-          <Button
-            disabled={pending}
-            onClick={onCancel}
-            ref={cancelRef}
-            variant="secondary"
-            type="button"
-          >
+          <Button disabled={pending} onClick={onCancel} variant="secondary" type="button">
             Cancelar
           </Button>
           <Button
             disabled={pending || confirmDisabled}
             leadingIcon={confirmTone === 'danger' ? 'warning' : undefined}
             onClick={onConfirm}
-            ref={confirmRef}
             variant={confirmTone}
             type="button"
           >

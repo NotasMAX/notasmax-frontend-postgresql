@@ -54,6 +54,7 @@ export interface StudentEnrollmentHistoryItem {
   };
   readonly startDate: string;
   readonly cancellationDate: string | null;
+  readonly cancellationRequestedAt: string | null;
 }
 
 export interface StudentAccountDetail extends AccountSummary {

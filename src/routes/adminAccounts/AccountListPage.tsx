@@ -19,11 +19,13 @@ import {
 } from '../../accounts/accountService';
 import { AccountPageShell } from './AccountPageShell';
 import { Badge } from '../../components/Badge';
+import { Icon } from '../../components/Icon';
 import { SelectField } from '../../components/SelectField';
 import { Toast } from '../../components/Toast';
 import {
   accountCreatedFeedback,
   accountCollectionPath,
+  accountRegisterLabel,
   accountErrorMessage,
   activationStatusLabel,
   activationStatusTone,
@@ -419,16 +421,18 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
         )}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
-            className="account-button-primary min-h-11 rounded-lg bg-primary px-5 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="account-button-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             type="submit"
           >
+            <Icon name="filter" />
             Aplicar filtros
           </button>
           <button
-            className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-5 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="account-button-secondary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-panel-outline px-5 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             onClick={clearFilters}
             type="button"
           >
+            <Icon name="clear" />
             Limpar filtros
           </button>
           <label className="flex items-center gap-2 text-body-medium text-on-surface sm:ml-auto">
@@ -451,10 +455,11 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
 
       <div className="flex justify-end">
         <Link
-          className="account-button-primary inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="account-button-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           to={accountCollectionPath(profile) + '/novo'}
         >
-          Cadastrar conta
+          <Icon name="add" />
+          {accountRegisterLabel(profile)}
         </Link>
       </div>
 
@@ -493,7 +498,10 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
                 const id = accountIdentifier(account);
                 return (
                   <li key={id}>
-                    <article className="panel-surface flex h-full flex-col gap-4 rounded-2xl bg-surface p-5">
+                    <Link
+                      className="panel-surface group grid h-full grid-cols-1 gap-4 rounded-2xl bg-surface p-5 transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                      to={accountCollectionPath(profile) + '/' + encodeURIComponent(id)}
+                    >
                       <div className="flex min-w-0 items-start justify-between gap-4">
                         <div className="min-w-0">
                           <h2 className="truncate text-title-large font-semibold text-on-surface">
@@ -532,28 +540,17 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
                           )}
                         </dl>
                       </div>
-                      <Link
-                        className="account-button-secondary mt-auto inline-flex min-h-11 w-fit items-center rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                        to={accountCollectionPath(profile) + '/' + encodeURIComponent(id)}
-                      >
+                      <span className="inline-flex min-h-11 w-fit items-center gap-2 justify-self-center rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary transition-colors group-hover:border-primary group-hover:bg-primary group-hover:text-on-primary sm:justify-self-end">
+                        <Icon name="view" />
                         Ver detalhes
-                      </Link>
-                    </article>
+                      </span>
+                    </Link>
                   </li>
                 );
               })}
             </ul>
           )}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p aria-live="polite" className="text-body-medium text-muted" role="status">
-              {result.pagination.totalItems === 0
-                ? 'Nenhuma conta encontrada.'
-                : result.pagination.totalItems +
-                  ' contas encontradas · página ' +
-                  result.pagination.page +
-                  ' de ' +
-                  result.pagination.totalPages}
-            </p>
             <nav aria-label="Paginação de contas" className="flex flex-wrap items-center gap-3">
               <button
                 className="account-button-secondary min-h-11 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary disabled:cursor-not-allowed disabled:opacity-50"
@@ -576,6 +573,26 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
                 Próxima
               </button>
             </nav>
+            <p aria-live="polite" className="text-body-medium text-muted" role="status">
+              {result.pagination.totalItems === 0
+                ? profile === 'student'
+                  ? 'Nenhum aluno encontrado.'
+                  : 'Nenhuma conta encontrada.'
+                : profile === 'student'
+                  ? result.pagination.totalItems +
+                    (result.pagination.totalItems === 1
+                      ? ' aluno encontrado'
+                      : ' alunos encontrados') +
+                    ' · página ' +
+                    result.pagination.page +
+                    ' de ' +
+                    result.pagination.totalPages
+                  : result.pagination.totalItems +
+                    ' contas encontradas · página ' +
+                    result.pagination.page +
+                    ' de ' +
+                    result.pagination.totalPages}
+            </p>
           </div>
         </>
       ) : null}

@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { actionClassName } from './actionStyles';
 import { Icon, type IconName } from './Icon';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'text';
+export type ButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'text';
 export type ButtonSize = 'compact' | 'standard' | 'large' | 'icon';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

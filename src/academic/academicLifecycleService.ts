@@ -100,6 +100,10 @@ export function loadAcademicEnrollment(enrollmentId: string) {
   return getAdminEnrollment(enrollmentId);
 }
 
-export function cancelAcademicEnrollment(enrollmentId: string, date: string, etag: string) {
+export function cancelAcademicEnrollment(
+  enrollmentId: string,
+  date: string | undefined,
+  etag: string,
+) {
   return cancelAdminEnrollment(enrollmentId, date, etag);
 }

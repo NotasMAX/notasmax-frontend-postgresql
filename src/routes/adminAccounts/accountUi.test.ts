@@ -70,7 +70,7 @@ describe('account UI contract helpers', () => {
     expect(civilDateLabel('unknown')).toBe('unknown');
   });
 
-  it('maps validated RFC 9457 field errors and preserves API messages', () => {
+  it('explains the email format while preserving other validated RFC 9457 field errors', () => {
     const error = new ApiRequestError({
       status: 422,
       problem: {
@@ -98,7 +98,9 @@ describe('account UI contract helpers', () => {
     });
     const result = getAccountFormErrors(error, ['email']);
 
-    expect(result.fields.email).toEqual(['Use o formato indicado.']);
+    expect(result.fields.email).toEqual([
+      'Informe um e-mail válido, por exemplo nome@exemplo.com.',
+    ]);
     expect(result.fields.currentPassword).toEqual([]);
     expect(result.messages).toEqual([
       'Confira as informações e corrija os campos indicados.',
@@ -110,7 +112,7 @@ describe('account UI contract helpers', () => {
   });
 
   it('does not claim email delivery for accepted activation requests', () => {
-    expect(activationFeedback('sent')).toBe('Solicitação de ativação recebida.');
+    expect(activationFeedback('sent')).toBe('Solicitação de ativação enviada.');
     expect(activationFeedback('failed')).toContain('Tente novamente');
   });
 

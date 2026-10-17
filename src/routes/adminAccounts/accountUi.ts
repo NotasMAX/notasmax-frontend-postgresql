@@ -46,6 +46,10 @@ export function accountTitle(profile: AccountProfile): string {
   return 'Contas de ' + ACCOUNT_PROFILE_LABELS[profile].toLocaleLowerCase('pt-BR');
 }
 
+export function accountRegisterLabel(profile: AccountProfile): string {
+  return profile === 'student' ? 'Cadastrar aluno' : 'Cadastrar conta';
+}
+
 export function activationStatusLabel(status: AccountActivationStatus): string {
   return status === 'activated' ? 'Ativada' : 'Pendente de ativação';
 }
@@ -62,7 +66,7 @@ export function classLabel(classInfo: {
   readonly series: number;
   readonly schoolYear: number;
 }): string {
-  return classInfo.series + 'ª série · ano letivo ' + classInfo.schoolYear;
+  return classInfo.series + 'ª série · ' + classInfo.schoolYear;
 }
 
 export function civilDateLabel(value: string): string {
@@ -72,13 +76,13 @@ export function civilDateLabel(value: string): string {
 
 export function activationFeedback(status: ActivationEmailStatus): string {
   return status === 'sent'
-    ? 'Solicitação de ativação recebida.'
+    ? 'Solicitação de ativação enviada.'
     : 'Não foi possível enviar o link. Tente novamente.';
 }
 
 export function accountCreatedFeedback(status: ActivationEmailStatus): string {
   return status === 'sent'
-    ? 'Conta cadastrada com sucesso. Solicitação de ativação recebida.'
+    ? 'Conta cadastrada com sucesso. Solicitação de ativação enviada.'
     : 'Conta cadastrada com sucesso, mas não foi possível enviar o link de ativação.';
 }
 
@@ -166,7 +170,11 @@ export function getAccountFormErrors(
   for (const fieldError of presentation.fieldErrors) {
     const field = accountFieldForProblem(fieldError);
     if (field !== undefined && visibleFields.includes(field)) {
-      fields[field].push(fieldError.detail);
+      fields[field].push(
+        field === 'email' && fieldError.code === 'INVALID_FORMAT'
+          ? 'Informe um e-mail válido, por exemplo nome@exemplo.com.'
+          : fieldError.detail,
+      );
     } else {
       messages.push(fieldError.detail);
     }

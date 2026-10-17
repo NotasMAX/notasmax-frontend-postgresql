@@ -127,7 +127,7 @@ describe('NM-33 simulation screens', () => {
 
     await user.click(await screen.findByRole('link', { name: 'Consultar histórico' }));
     expect(await screen.findByRole('heading', { name: 'Simulados' })).not.toBeNull();
-    expect(screen.getByText(`9ª série · ano letivo ${currentSchoolYear}`)).not.toBeNull();
+    expect(screen.getByText(`9ª série · ${currentSchoolYear}`)).not.toBeNull();
     expect(screen.queryByLabelText('Ano letivo')).toBeNull();
     expect(screen.queryByLabelText('Série')).toBeNull();
     expect(await screen.findByRole('link', { name: 'Abrir detalhe' })).not.toBeNull();
@@ -151,15 +151,13 @@ describe('NM-33 simulation screens', () => {
 
     const yearSelect = (await screen.findByLabelText('Ano letivo')) as HTMLSelectElement;
     expect(yearSelect.value).toBe(String(currentSchoolYear));
-    expect(screen.getByText(`9ª série · ano letivo ${currentSchoolYear}`)).not.toBeNull();
-    expect(screen.getByText(`10ª série · ano letivo ${currentSchoolYear}`)).not.toBeNull();
-    expect(screen.queryByText(`8ª série · ano letivo ${currentSchoolYear - 1}`)).toBeNull();
+    expect(screen.getByText(`9ª série · ${currentSchoolYear}`)).not.toBeNull();
+    expect(screen.getByText(`10ª série · ${currentSchoolYear}`)).not.toBeNull();
+    expect(screen.queryByText(`8ª série · ${currentSchoolYear - 1}`)).toBeNull();
 
     await user.selectOptions(yearSelect, String(currentSchoolYear - 1));
-    expect(
-      await screen.findByText(`8ª série · ano letivo ${currentSchoolYear - 1}`),
-    ).not.toBeNull();
-    expect(screen.queryByText(`9ª série · ano letivo ${currentSchoolYear}`)).toBeNull();
+    expect(await screen.findByText(`8ª série · ${currentSchoolYear - 1}`)).not.toBeNull();
+    expect(screen.queryByText(`9ª série · ${currentSchoolYear}`)).toBeNull();
   });
 
   it('removes year and series selectors from the class simulation list', async () => {
@@ -168,7 +166,7 @@ describe('NM-33 simulation screens', () => {
     await screen.findByRole('link', { name: 'Abrir detalhe' });
     expect(screen.queryByLabelText('Ano letivo')).toBeNull();
     expect(screen.queryByLabelText('Série')).toBeNull();
-    expect(screen.getByText(`9ª série · ano letivo ${currentSchoolYear}`)).not.toBeNull();
+    expect(screen.getByText(`9ª série · ${currentSchoolYear}`)).not.toBeNull();
   });
 
   it('styles the choose-another-class link as a secondary button', async () => {
