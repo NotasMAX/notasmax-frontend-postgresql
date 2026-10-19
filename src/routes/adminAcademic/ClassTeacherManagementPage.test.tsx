@@ -71,6 +71,41 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe('dedicated class teacher-management page', () => {
+  it('retries the failed initial management load and displays the loaded teachers', async () => {
+    const user = userEvent.setup();
+    vi.mocked(lifecycle.loadAcademicTeacherPage)
+      .mockRejectedValueOnce(new Error('temporary teacher load failure'))
+      .mockResolvedValueOnce({
+        items: [
+          {
+            teacherId: '9',
+            name: 'Professora associada',
+            email: 'associated@example.test',
+            activationStatus: 'activated',
+          },
+        ],
+        etag: '"teachers-v2"',
+      });
+
+    renderPage();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('Não foi possível concluir esta ação. Tente novamente.');
+    expect(alert.textContent).not.toContain('temporary teacher load failure');
+    expect(lifecycle.loadAcademicTeacherPage).toHaveBeenCalledTimes(1);
+
+    expect(alert.getAttribute('aria-live')).toBe('assertive');
+    const retryButton = screen.getByRole('button', { name: 'Tentar novamente' });
+    expect(retryButton.parentElement).toBe(alert.parentElement);
+    expect(retryButton.closest('[role="alert"], [aria-live]')).toBeNull();
+
+    await user.click(retryButton);
+
+    expect(await screen.findByText('Professora associada')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Tentar novamente' })).toBeNull();
+    expect(lifecycle.loadAcademicTeacherPage).toHaveBeenCalledTimes(2);
+  });
+
   it('shows class and subject context and returns to the class detail', async () => {
     renderPage();
 

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
 import type { FormEvent } from 'react';
+import { ActionLink } from '../../components/ActionLink';
+import { Alert } from '../../components/Alert';
+import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { CenteredSubmitButton } from '../../components/CenteredSubmitButton';
 import { SelectField } from '../../components/SelectField';
@@ -13,42 +15,53 @@ import {
 } from '../../academic/academicLifecycleService';
 import type { ClassSubjectOffer } from '../../api/adminAcademicLifecycle';
 import type { AdminSubjectOption } from '../../api/adminAcademicCatalog';
-import { dangerButtonClass, primaryButtonClass } from './academicButtonStyles';
 
 export function ClassOfferManagement({ classId }: { readonly classId: string }) {
   const [offers, setOffers] = useState<readonly ClassSubjectOffer[]>([]);
   const [offerEtag, setOfferEtag] = useState<string | null>(null);
   const [subjects, setSubjects] = useState<readonly AdminSubjectOption[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [subjectsLoading, setSubjectsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [offersErrorMessage, setOffersErrorMessage] = useState<string | null>(null);
+  const [subjectsErrorMessage, setSubjectsErrorMessage] = useState<string | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<ClassSubjectOffer | null>(null);
   const mutationInFlight = useRef(false);
 
   const refreshOffers = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
+    setOffersErrorMessage(null);
     try {
       const result = await loadAcademicOfferPage(classId);
       setOffers(result.items);
       setOfferEtag(result.etag);
     } catch (error) {
-      setErrorMessage(accountErrorMessage(error));
+      setOffersErrorMessage(accountErrorMessage(error));
     } finally {
       setLoading(false);
     }
   }, [classId]);
 
+  const refreshSubjects = useCallback(async () => {
+    setSubjectsLoading(true);
+    setSubjectsErrorMessage(null);
+    try {
+      setSubjects(await loadAcademicSubjectChoices());
+    } catch (error) {
+      setSubjectsErrorMessage(accountErrorMessage(error));
+    } finally {
+      setSubjectsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- begin collection reads when the class changes.
     void refreshOffers();
-    void loadAcademicSubjectChoices()
-      .then(setSubjects)
-      .catch((error: unknown) => {
-        setErrorMessage(accountErrorMessage(error));
-      });
-  }, [refreshOffers]);
+    void refreshSubjects();
+  }, [refreshOffers, refreshSubjects]);
 
   async function addOffer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -110,27 +123,73 @@ export function ClassOfferManagement({ classId }: { readonly classId: string }) 
         <h2 className="text-title-large font-semibold text-on-surface" id="add-class-offer-heading">
           Adicionar matéria
         </h2>
-        <form className="space-y-3" onSubmit={(event) => void addOffer(event)}>
-          <label className="sr-only" htmlFor="offer-subject">
+        <form
+          aria-busy={busy || loading || subjectsLoading}
+          className="space-y-3"
+          onSubmit={(event) => void addOffer(event)}
+        >
+          <label
+            className="block space-y-2 text-label-large font-medium text-on-surface"
+            htmlFor="offer-subject"
+          >
             Matéria para adicionar
           </label>
           <SelectField
-            disabled={busy || availableSubjects.length === 0}
+            disabled={
+              busy ||
+              loading ||
+              subjectsLoading ||
+              Boolean(offersErrorMessage) ||
+              Boolean(subjectsErrorMessage) ||
+              availableSubjects.length === 0
+            }
             id="offer-subject"
             onChange={(event) => setSelectedSubjectId(event.currentTarget.value)}
             required
             value={selectedSubjectId}
           >
-            <option value="">Selecione uma matéria</option>
+            <option value="">
+              {subjectsLoading ? 'Carregando matérias…' : 'Selecione uma matéria'}
+            </option>
             {availableSubjects.map((subject) => (
               <option key={subject.subjectId} value={subject.subjectId}>
                 {subject.name}
               </option>
             ))}
           </SelectField>
-          <CenteredSubmitButton disabled={busy || !offerEtag || !selectedSubjectId} icon="add">
+          <CenteredSubmitButton
+            disabled={
+              busy ||
+              loading ||
+              subjectsLoading ||
+              Boolean(offersErrorMessage) ||
+              Boolean(subjectsErrorMessage) ||
+              !offerEtag ||
+              !selectedSubjectId
+            }
+            icon="add"
+          >
             {busy ? 'Salvando…' : 'Adicionar matéria'}
           </CenteredSubmitButton>
+          {subjectsErrorMessage && (
+            <div className="flex flex-col items-start gap-3">
+              <Alert className="w-full" tone="danger">
+                {subjectsErrorMessage}
+              </Alert>
+              <Button onClick={() => void refreshSubjects()} type="button" variant="secondary">
+                Tentar carregar matérias
+              </Button>
+            </div>
+          )}
+          {!subjectsLoading &&
+            !loading &&
+            !subjectsErrorMessage &&
+            !offersErrorMessage &&
+            availableSubjects.length === 0 && (
+              <p aria-live="polite" className="text-body-medium text-muted" role="status">
+                Nenhuma matéria disponível para associar a esta turma.
+              </p>
+            )}
         </form>
       </section>
       <section
@@ -149,6 +208,15 @@ export function ClassOfferManagement({ classId }: { readonly classId: string }) 
           <p aria-live="polite" className="text-body-medium text-muted" role="status">
             Carregando matérias…
           </p>
+        ) : offersErrorMessage ? (
+          <div className="flex flex-col items-start gap-3">
+            <Alert className="w-full" tone="danger">
+              {offersErrorMessage}
+            </Alert>
+            <Button onClick={() => void refreshOffers()} type="button" variant="secondary">
+              Tentar carregar matérias novamente
+            </Button>
+          </div>
         ) : offers.length === 0 ? (
           <p className="text-body-medium text-muted">Nenhuma matéria associada a esta turma.</p>
         ) : (
@@ -165,20 +233,22 @@ export function ClassOfferManagement({ classId }: { readonly classId: string }) 
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Link
-                    className={primaryButtonClass}
+                  <ActionLink
                     to={`/admin/estrutura/turmas/${encodeURIComponent(classId)}/materias/${encodeURIComponent(offer.subjectId)}/professores`}
+                    leadingIcon="people"
+                    variant="primary"
                   >
                     Gerenciar professores
-                  </Link>
-                  <button
-                    className={dangerButtonClass}
+                  </ActionLink>
+                  <Button
                     disabled={busy || !offerEtag}
+                    leadingIcon="delete"
                     onClick={() => setPendingRemoval(offer)}
                     type="button"
+                    variant="danger"
                   >
                     Remover matéria
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}

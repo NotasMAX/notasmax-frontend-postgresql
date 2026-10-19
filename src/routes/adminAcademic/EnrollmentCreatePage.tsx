@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router';
 import type { StudentAccountSummary } from '../../api/adminAccounts';
 import type { AdminClassOption } from '../../api/adminAcademicCatalog';
 import { ApiRequestError } from '../../api/problemDetails';
@@ -12,6 +12,8 @@ import {
 } from '../../academic/academicLifecycleService';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Badge } from '../../components/Badge';
+import { ActionLink } from '../../components/ActionLink';
+import { Button } from '../../components/Button';
 import { Icon } from '../../components/Icon';
 import {
   accountErrorMessage,
@@ -23,15 +25,16 @@ import {
 import { CenteredSubmitButton } from '../../components/CenteredSubmitButton';
 import { SelectField } from '../../components/SelectField';
 import { AcademicPageLayout } from './AcademicPageLayout';
-import { primaryButtonClass, secondaryButtonClass } from './academicButtonStyles';
 
 const field =
-  'min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface';
+  'min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2';
 export function EnrollmentCreatePage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [students, setStudents] = useState<readonly StudentAccountSummary[]>([]);
   const [classes, setClasses] = useState<readonly AdminClassOption[]>([]);
+  const [classesLoading, setClassesLoading] = useState(true);
+  const [classesError, setClassesError] = useState<string | null>(null);
   const [studentId, setStudentId] = useState('');
   const [schoolYear, setSchoolYear] = useState('');
   const [classId, setClassId] = useState('');
@@ -40,10 +43,25 @@ export function EnrollmentCreatePage() {
     null,
   );
   const [busy, setBusy] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submitting = useRef(false);
+  const classesErrorRef = useRef<HTMLDivElement>(null);
   const enrollmentFormRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
+
+  const refreshClasses = useCallback(async () => {
+    setClassesLoading(true);
+    setClassesError(null);
+    try {
+      setClasses(await loadAllAcademicClasses());
+    } catch (cause) {
+      setClassesError(accountErrorMessage(cause));
+    } finally {
+      setClassesLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const form = enrollmentFormRef.current;
@@ -59,14 +77,22 @@ export function EnrollmentCreatePage() {
   }, [error]);
 
   useEffect(() => {
-    void loadAllAcademicClasses()
-      .then(setClasses)
-      .catch((cause: unknown) => setError(accountErrorMessage(cause)));
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- start the route's asynchronous class-choice load.
+    void refreshClasses();
+  }, [refreshClasses]);
+
+  useEffect(() => {
+    if (!classesError) return;
+    classesErrorRef.current?.focus();
+    classesErrorRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+  }, [classesError]);
 
   async function searchStudents(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (searching) return;
     setError(null);
+    setHasSearched(false);
+    setSearching(true);
     setStudentId('');
     setSchoolYear('');
     setClassId('');
@@ -83,14 +109,26 @@ export function EnrollmentCreatePage() {
       setStudents(
         result.items.filter((item): item is StudentAccountSummary => 'studentId' in item),
       );
+      setHasSearched(true);
     } catch (cause) {
       setError(accountErrorMessage(cause));
+    } finally {
+      setSearching(false);
     }
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting.current || !studentId || !classId || !startDate) return;
+    if (
+      submitting.current ||
+      classesLoading ||
+      classesError ||
+      !studentId ||
+      !classId ||
+      !startDate
+    ) {
+      return;
+    }
     submitting.current = true;
     setBusy(true);
     let completed = false;
@@ -127,7 +165,17 @@ export function EnrollmentCreatePage() {
   }
 
   async function confirmRenewal() {
-    if (!renewal || submitting.current || !classId || !studentId || !startDate) return;
+    if (
+      !renewal ||
+      submitting.current ||
+      classesLoading ||
+      classesError ||
+      !classId ||
+      !studentId ||
+      !startDate
+    ) {
+      return;
+    }
     submitting.current = true;
     setBusy(true);
     let completed = false;
@@ -191,6 +239,7 @@ export function EnrollmentCreatePage() {
       title="Nova matrícula"
     >
       <form
+        aria-busy={searching}
         onSubmit={searchStudents}
         className="panel-surface space-y-3 rounded-2xl bg-surface p-4"
       >
@@ -203,9 +252,49 @@ export function EnrollmentCreatePage() {
             onChange={(event) => setQuery(event.currentTarget.value)}
           />
         </label>
-        <CenteredSubmitButton icon="search">Buscar</CenteredSubmitButton>
+        <CenteredSubmitButton disabled={searching} icon="search">
+          {searching ? 'Buscando…' : 'Buscar'}
+        </CenteredSubmitButton>
       </form>
+      {classesError && (
+        <div
+          ref={classesErrorRef}
+          aria-live="assertive"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger bg-error-surface p-4 text-body-medium text-danger focus:outline-2 focus:outline-offset-2 focus:outline-danger"
+          role="alert"
+          tabIndex={-1}
+        >
+          <span>{classesError}</span>
+          <Button
+            disabled={classesLoading}
+            leadingIcon="refresh"
+            onClick={() => void refreshClasses()}
+            type="button"
+            variant="secondary"
+          >
+            {classesLoading ? 'Carregando…' : 'Tentar novamente'}
+          </Button>
+        </div>
+      )}
       {!studentId && errorAlert}
+      {!studentId && searching && (
+        <p
+          aria-live="polite"
+          className="py-4 text-center text-body-medium text-muted"
+          role="status"
+        >
+          Buscando alunos…
+        </p>
+      )}
+      {!studentId && hasSearched && students.length === 0 && !error && (
+        <p
+          aria-live="polite"
+          className="panel-surface rounded-2xl bg-surface p-6 text-body-large text-muted"
+          role="status"
+        >
+          Nenhum aluno encontrado para esta busca.
+        </p>
+      )}
       {visibleStudents.length > 0 && (
         <section aria-labelledby="available-students-heading" className="space-y-3">
           <h2
@@ -251,15 +340,17 @@ export function EnrollmentCreatePage() {
                       </span>
                     </button>
                     {selected && (
-                      <button
+                      <Button
                         aria-label="Voltar à lista de alunos"
-                        className={`${secondaryButtonClass} min-h-10 w-10 justify-self-end px-2`}
+                        className="justify-self-end"
                         onClick={returnToStudentList}
+                        size="icon"
                         title="Voltar à lista"
                         type="button"
+                        variant="secondary"
                       >
                         <Icon name="close" />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </li>
@@ -272,14 +363,26 @@ export function EnrollmentCreatePage() {
       {studentId && (
         <form
           aria-label="Formulário de criação de matrícula"
+          aria-busy={busy || classesLoading}
           ref={enrollmentFormRef}
           tabIndex={-1}
           onSubmit={(event) => void submit(event)}
-          className="panel-surface space-y-4 rounded-2xl bg-surface p-5 focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+          className="panel-surface w-full max-w-[45rem] space-y-4 rounded-2xl bg-surface p-5 focus:outline-2 focus:outline-offset-2 focus:outline-primary sm:p-6"
         >
-          <label className="block space-y-2">
+          {classesLoading && (
+            <p aria-live="polite" className="text-body-medium text-muted" role="status">
+              Carregando turmas…
+            </p>
+          )}
+          {!classesLoading && !classesError && classes.length === 0 && (
+            <p aria-live="polite" className="text-body-medium text-muted" role="status">
+              Nenhuma turma disponível para matrícula.
+            </p>
+          )}
+          <label className="block space-y-2 text-label-large font-medium text-on-surface">
             Ano letivo
             <SelectField
+              disabled={classesLoading || Boolean(classesError) || classes.length === 0}
               required
               value={schoolYear}
               onChange={(event) => {
@@ -295,10 +398,10 @@ export function EnrollmentCreatePage() {
               ))}
             </SelectField>
           </label>
-          <label className="block space-y-2">
+          <label className="block space-y-2 text-label-large font-medium text-on-surface">
             Série
             <SelectField
-              disabled={!schoolYear}
+              disabled={!schoolYear || classesLoading || Boolean(classesError)}
               required
               value={classId}
               onChange={(event) => setClassId(event.currentTarget.value)}
@@ -312,7 +415,7 @@ export function EnrollmentCreatePage() {
               ))}
             </SelectField>
           </label>
-          <label className="block space-y-2">
+          <label className="block space-y-2 text-label-large font-medium text-on-surface">
             Data de início
             <input
               className={field}
@@ -322,13 +425,18 @@ export function EnrollmentCreatePage() {
               onChange={(event) => setStartDate(event.currentTarget.value)}
             />
           </label>
-          <div className="flex gap-3">
-            <button className={primaryButtonClass} disabled={busy || !studentId} type="submit">
+          <div className="flex flex-wrap gap-3">
+            <Button
+              disabled={busy || !studentId || classesLoading || Boolean(classesError)}
+              leadingIcon="check"
+              type="submit"
+              variant="primary"
+            >
               {busy ? 'Salvando…' : 'Criar matrícula'}
-            </button>
-            <Link className={secondaryButtonClass} to="/admin/contas/alunos">
+            </Button>
+            <ActionLink leadingIcon="close" to="/admin/contas/alunos">
               Cancelar
-            </Link>
+            </ActionLink>
           </div>
         </form>
       )}

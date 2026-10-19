@@ -348,9 +348,33 @@ describe('academic subject and class workflows', () => {
     renderAt('/admin/estrutura/turmas/44', <AcademicClassDetailPage />);
 
     expect(await screen.findByText('01/02/2026')).toBeTruthy();
+    expect(screen.getByText('Aberta')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Editar turma' }).getAttribute('href')).toBe(
       '/admin/estrutura/turmas/44/editar',
     );
+  });
+
+  it('shows an already-closed class state and hides its close action', async () => {
+    vi.mocked(lifecycleService.loadAcademicOfferPage).mockResolvedValue({
+      items: [],
+      etag: '"offers"',
+    });
+    vi.mocked(lifecycleService.loadAcademicSubjectChoices).mockResolvedValue([]);
+    vi.mocked(academicService.loadAcademicClass).mockResolvedValueOnce({
+      schoolClass: {
+        classId: '44',
+        series: 2,
+        schoolYear: 2026,
+        startDate: '2026-02-01',
+        isClosed: true,
+      },
+      etag: '"opaque"',
+    });
+
+    renderAt('/admin/estrutura/turmas/44', <AcademicClassDetailPage />);
+
+    expect(await screen.findByText('Encerrada')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Encerrar turma' })).toBeNull();
   });
 
   it('requires class-closure confirmation and sends one closure with the detail ETag', async () => {

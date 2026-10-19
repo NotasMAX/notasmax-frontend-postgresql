@@ -52,6 +52,27 @@ afterEach(() => cleanup());
 describe('existing-student enrollment', () => {
   it('shows the enrollment form only after a student is selected', async () => {
     const user = userEvent.setup();
+    vi.mocked(accountService.loadAccountPage).mockResolvedValueOnce({
+      items: [
+        {
+          studentId: '12',
+          name: 'Ana',
+          email: 'ana@example.test',
+          activationStatus: 'activated',
+          enrollmentStatus: 'no_active_enrollment',
+          currentClass: null,
+        },
+        {
+          studentId: '13',
+          name: 'Bruno',
+          email: 'bruno@example.test',
+          activationStatus: 'activated',
+          enrollmentStatus: 'no_active_enrollment',
+          currentClass: null,
+        },
+      ],
+      pagination: { page: 1, pageSize: 20, totalItems: 2, totalPages: 1 },
+    });
     renderPage();
 
     expect(screen.queryByLabelText('Ano letivo')).toBeNull();
@@ -73,13 +94,37 @@ describe('existing-student enrollment', () => {
 
     studentCard.focus();
     await user.keyboard('{Enter}');
-    expect(studentCard.getAttribute('aria-pressed')).toBe('true');
+    expect(
+      screen.getByRole('button', { name: /Ana.*ana@example\.test/ }).getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(screen.queryByRole('button', { name: /Bruno.*bruno@example\.test/ })).toBeNull();
     expect(screen.getByLabelText('Ano letivo')).toBeTruthy();
     expect(screen.getByLabelText('Série')).toBeTruthy();
     expect(screen.getByLabelText('Data de início')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Cancelar' }).className).toContain(
-      'border-panel-outline',
-    );
+    expect(screen.getByRole('link', { name: 'Cancelar' }).className).toContain('border-outline');
+    const enrollmentForm = screen.getByRole('form', { name: 'Formulário de criação de matrícula' });
+    expect(document.activeElement).toBe(enrollmentForm);
+
+    await user.click(screen.getByRole('button', { name: 'Voltar à lista de alunos' }));
+
+    expect(screen.queryByRole('form', { name: 'Formulário de criação de matrícula' })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: /Ana.*ana@example\.test/ }).getAttribute('aria-pressed'),
+    ).toBe('false');
+    expect(screen.getByRole('button', { name: /Bruno.*bruno@example\.test/ })).toBeTruthy();
+  });
+
+  it('explains when the student search returns no eligible results', async () => {
+    const user = userEvent.setup();
+    vi.mocked(accountService.loadAccountPage).mockResolvedValueOnce({
+      items: [],
+      pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 },
+    });
+
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(await screen.findByText('Nenhum aluno encontrado para esta busca.')).toBeTruthy();
   });
 
   it('creates one enrollment with the selected class and date-only value', async () => {

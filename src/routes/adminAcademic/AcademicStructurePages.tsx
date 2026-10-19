@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import type { AdminClass, AdminSubjectOption } from '../../api/adminAcademicCatalog';
 import {
   createAcademicClass,
@@ -15,15 +15,13 @@ import {
 } from '../../academic/academicStructureService';
 import { civilDateLabel, accountErrorMessage } from '../adminAccounts/accountUi';
 import { ClassOfferManagement } from './ClassOfferManagement';
+import { ActionLink } from '../../components/ActionLink';
+import { Badge } from '../../components/Badge';
+import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { CenteredSubmitButton } from '../../components/CenteredSubmitButton';
 import { SelectField } from '../../components/SelectField';
 import { AcademicPageLayout } from './AcademicPageLayout';
-import {
-  dangerButtonClass,
-  primaryButtonClass,
-  secondaryButtonClass,
-} from './academicButtonStyles';
 import {
   closeAcademicClass,
   createAcademicClassWithClosures,
@@ -41,9 +39,9 @@ function LoadError({ message, retry }: { readonly message: string; readonly retr
       <p aria-live="assertive" className="text-body-medium text-danger" role="alert">
         {message}
       </p>
-      <button className={secondaryButtonClass} onClick={retry} type="button">
+      <Button leadingIcon="refresh" onClick={retry} type="button" variant="secondary">
         Tentar novamente
-      </button>
+      </Button>
     </div>
   );
 }
@@ -60,25 +58,25 @@ function Pager({
   if (totalPages <= 1) return null;
   return (
     <nav aria-label="Paginação" className="flex items-center justify-between gap-3">
-      <button
-        className={secondaryButtonClass}
+      <Button
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
         type="button"
+        variant="secondary"
       >
         Anterior
-      </button>
+      </Button>
       <p aria-live="polite" className="text-body-medium text-muted">
         Página {page} de {totalPages}
       </p>
-      <button
-        className={secondaryButtonClass}
+      <Button
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
         type="button"
+        variant="secondary"
       >
         Próxima
-      </button>
+      </Button>
     </nav>
   );
 }
@@ -128,9 +126,9 @@ export function AcademicSubjectListPage() {
   return (
     <AcademicPageLayout
       actions={
-        <Link className={primaryButtonClass} to="/admin/estrutura/materias/nova">
+        <ActionLink leadingIcon="add" to="/admin/estrutura/materias/nova" variant="primary">
           Cadastrar matéria
-        </Link>
+        </ActionLink>
       }
       description="Consulte, pesquise, cadastre e edite as matérias disponíveis."
       title="Matérias"
@@ -179,18 +177,19 @@ export function AcademicSubjectListPage() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Link
-                    className={secondaryButtonClass}
+                  <ActionLink
                     to={`/admin/estrutura/materias/${encodeURIComponent(subject.subjectId)}`}
+                    leadingIcon="view"
                   >
                     Ver matéria
-                  </Link>
-                  <Link
-                    className={primaryButtonClass}
+                  </ActionLink>
+                  <ActionLink
                     to={`/admin/estrutura/materias/${encodeURIComponent(subject.subjectId)}/editar`}
+                    leadingIcon="edit"
+                    variant="primary"
                   >
                     Editar
-                  </Link>
+                  </ActionLink>
                 </div>
               </li>
             ))}
@@ -230,17 +229,18 @@ export function AcademicSubjectDetailPage() {
   return (
     <AcademicPageLayout
       actions={
-        <div className="flex w-full items-center justify-between gap-3">
-          <Link className={secondaryButtonClass} to="/admin/estrutura/materias">
+        <div className="flex w-full flex-wrap items-center justify-between gap-3">
+          <ActionLink leadingIcon="arrowBack" to="/admin/estrutura/materias">
             Voltar à lista
-          </Link>
+          </ActionLink>
           {subjectId && (
-            <Link
-              className={primaryButtonClass}
+            <ActionLink
               to={`/admin/estrutura/materias/${encodeURIComponent(subjectId)}/editar`}
+              leadingIcon="edit"
+              variant="primary"
             >
               Editar matéria
-            </Link>
+            </ActionLink>
           )}
         </div>
       }
@@ -348,7 +348,7 @@ export function AcademicSubjectFormPage() {
       ) : (
         <form
           aria-busy={saving}
-          className="panel-surface max-w-3xl space-y-5 rounded-2xl bg-surface p-5 sm:p-6"
+          className="panel-surface w-full max-w-[45rem] space-y-5 rounded-2xl bg-surface p-5 sm:p-6"
           onSubmit={submit}
         >
           {errorMessage && (
@@ -390,16 +390,17 @@ export function AcademicSubjectFormPage() {
             />
           </div>
           <div className="flex flex-wrap gap-3">
-            <button
-              className={primaryButtonClass}
+            <Button
               disabled={saving || (editing && !subjectLoaded)}
+              leadingIcon="check"
               type="submit"
+              variant="primary"
             >
               {saving ? 'Salvando…' : 'Salvar matéria'}
-            </button>
-            <Link className={secondaryButtonClass} to="/admin/estrutura/materias">
+            </Button>
+            <ActionLink leadingIcon="close" to="/admin/estrutura/materias">
               Cancelar
-            </Link>
+            </ActionLink>
           </div>
         </form>
       )}
@@ -412,7 +413,7 @@ export function AcademicClassListPage() {
   const [schoolYear, setSchoolYear] = useState('');
   const [page, setPage] = useState(1);
   const [classes, setClasses] = useState<
-    readonly Pick<AdminClass, 'classId' | 'series' | 'schoolYear'>[]
+    readonly Pick<AdminClass, 'classId' | 'series' | 'schoolYear' | 'isClosed'>[]
   >([]);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -463,9 +464,9 @@ export function AcademicClassListPage() {
   return (
     <AcademicPageLayout
       actions={
-        <Link className={primaryButtonClass} to="/admin/estrutura/turmas/nova">
+        <ActionLink leadingIcon="add" to="/admin/estrutura/turmas/nova" variant="primary">
           Cadastrar turma
-        </Link>
+        </ActionLink>
       }
       description="Consulte turmas por ano letivo e abra os dados da turma para edição."
       title="Turmas"
@@ -508,7 +509,11 @@ export function AcademicClassListPage() {
       ) : errorMessage ? (
         <LoadError message={errorMessage} retry={() => void refresh()} />
       ) : classes.length === 0 ? (
-        <p className="panel-surface rounded-2xl bg-surface p-6 text-body-large text-muted">
+        <p
+          aria-live="polite"
+          className="panel-surface rounded-2xl bg-surface p-6 text-body-large text-muted"
+          role="status"
+        >
           Nenhuma turma encontrada para o ano selecionado.
         </p>
       ) : (
@@ -519,25 +524,29 @@ export function AcademicClassListPage() {
                 className="panel-surface flex flex-col justify-between gap-4 rounded-2xl bg-surface p-5 sm:flex-row sm:items-center"
                 key={schoolClass.classId}
               >
-                <div>
+                <div className="min-w-0 space-y-2">
                   <h2 className="text-title-medium font-semibold text-on-surface">
                     {schoolClass.series}ª série — {schoolClass.schoolYear}
                   </h2>
                   <p className="text-body-medium text-muted">Turma {schoolClass.classId}</p>
+                  <Badge tone={schoolClass.isClosed ? 'warning' : 'neutral'}>
+                    {schoolClass.isClosed ? 'Encerrada' : 'Aberta'}
+                  </Badge>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Link
-                    className={secondaryButtonClass}
+                  <ActionLink
                     to={`/admin/estrutura/turmas/${encodeURIComponent(schoolClass.classId)}`}
+                    leadingIcon="view"
                   >
                     Ver turma
-                  </Link>
-                  <Link
-                    className={primaryButtonClass}
+                  </ActionLink>
+                  <ActionLink
                     to={`/admin/estrutura/turmas/${encodeURIComponent(schoolClass.classId)}/editar`}
+                    leadingIcon="edit"
+                    variant="primary"
                   >
                     Editar
-                  </Link>
+                  </ActionLink>
                 </div>
               </li>
             ))}
@@ -604,28 +613,30 @@ export function AcademicClassDetailPage() {
   return (
     <AcademicPageLayout
       actions={
-        <div className="flex w-full items-center justify-between gap-3">
-          <Link className={secondaryButtonClass} to="/admin/estrutura/turmas">
+        <div className="flex w-full flex-wrap items-center justify-between gap-3">
+          <ActionLink leadingIcon="arrowBack" to="/admin/estrutura/turmas">
             Voltar à lista
-          </Link>
+          </ActionLink>
           <div className="flex flex-wrap justify-end gap-3">
             {classId && (
-              <Link
-                className={primaryButtonClass}
+              <ActionLink
                 to={`/admin/estrutura/turmas/${encodeURIComponent(classId)}/editar`}
+                leadingIcon="edit"
+                variant="primary"
               >
                 Editar turma
-              </Link>
+              </ActionLink>
             )}
-            {classId && !closed && (
-              <button
-                className={dangerButtonClass}
+            {classId && !(closed || schoolClass?.isClosed) && (
+              <Button
                 disabled={!etag || closing}
+                leadingIcon="close"
                 onClick={() => setConfirmClose(true)}
                 type="button"
+                variant="danger"
               >
                 Encerrar turma
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -660,8 +671,16 @@ export function AcademicClassDetailPage() {
                 {civilDateLabel(schoolClass.startDate)}
               </dd>
             </div>
+            <div>
+              <dt className="text-label-large font-medium text-muted">Estado</dt>
+              <dd className="mt-1">
+                <Badge tone={closed || schoolClass.isClosed ? 'warning' : 'neutral'}>
+                  {closed || schoolClass.isClosed ? 'Encerrada' : 'Aberta'}
+                </Badge>
+              </dd>
+            </div>
           </dl>
-          {closed && (
+          {(closed || schoolClass.isClosed) && (
             <p
               aria-live="polite"
               className="rounded-lg bg-surface p-4 text-body-medium text-muted"
@@ -823,7 +842,7 @@ export function AcademicClassFormPage() {
       ) : (
         <form
           aria-busy={saving}
-          className="panel-surface max-w-3xl space-y-5 rounded-2xl bg-surface p-5 sm:p-6"
+          className="panel-surface w-full max-w-[45rem] space-y-5 rounded-2xl bg-surface p-5 sm:p-6"
           onSubmit={submit}
         >
           {errorMessage && (
@@ -940,16 +959,17 @@ export function AcademicClassFormPage() {
               </fieldset>
             )}
           <div className="flex flex-wrap gap-3">
-            <button
-              className={primaryButtonClass}
+            <Button
               disabled={saving || (editing && !etag)}
+              leadingIcon="check"
               type="submit"
+              variant="primary"
             >
               {saving ? 'Salvando…' : 'Salvar turma'}
-            </button>
-            <Link className={secondaryButtonClass} to="/admin/estrutura/turmas">
+            </Button>
+            <ActionLink leadingIcon="close" to="/admin/estrutura/turmas">
               Cancelar
-            </Link>
+            </ActionLink>
           </div>
         </form>
       )}

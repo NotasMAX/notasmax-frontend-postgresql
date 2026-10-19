@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { loadAcademicClass } from '../../academic/academicStructureService';
 import {
   addAcademicTeacher,
@@ -12,15 +12,13 @@ import {
 import type { ClassSubjectOffer, TeacherAssociation } from '../../api/adminAcademicLifecycle';
 import type { AdminClass } from '../../api/adminAcademicCatalog';
 import type { TeacherAccountSummary } from '../../api/adminAccounts';
+import { ActionLink } from '../../components/ActionLink';
+import { Alert } from '../../components/Alert';
+import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { CenteredSubmitButton } from '../../components/CenteredSubmitButton';
 import { accountErrorMessage } from '../adminAccounts/accountUi';
 import { AcademicPageLayout } from './AcademicPageLayout';
-import {
-  dangerButtonClass,
-  primaryButtonClass,
-  secondaryButtonClass,
-} from './academicButtonStyles';
 const inputClass =
   'min-h-11 w-full rounded-lg border border-outline bg-surface px-3 text-body-medium text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
@@ -41,6 +39,7 @@ export function ClassTeacherManagementPage() {
   const [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [initialLoadFailed, setInitialLoadFailed] = useState(false);
   const [pendingRemoval, setPendingRemoval] = useState<TeacherAssociation | null>(null);
   const mutationInFlight = useRef(false);
 
@@ -53,6 +52,7 @@ export function ClassTeacherManagementPage() {
 
     setLoading(true);
     setErrorMessage(null);
+    setInitialLoadFailed(false);
     try {
       const [classResult, offerResult, teacherResult] = await Promise.all([
         loadAcademicClass(classId),
@@ -67,6 +67,7 @@ export function ClassTeacherManagementPage() {
       setTeachers(teacherResult);
     } catch (error) {
       setErrorMessage(accountErrorMessage(error));
+      setInitialLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -163,19 +164,22 @@ export function ClassTeacherManagementPage() {
       title="Gerenciar professores"
     >
       <div>
-        <Link className={secondaryButtonClass} to={backToClass}>
+        <ActionLink leadingIcon="arrowBack" to={backToClass}>
           Voltar à turma
-        </Link>
+        </ActionLink>
       </div>
 
       {errorMessage && (
-        <p
-          aria-live="assertive"
-          className="rounded-lg border border-danger bg-error-surface p-4 text-body-medium text-danger"
-          role="alert"
-        >
-          {errorMessage}
-        </p>
+        <div className="flex flex-col items-start gap-3">
+          <Alert className="w-full" tone="danger">
+            {errorMessage}
+          </Alert>
+          {initialLoadFailed && !loading && (
+            <Button onClick={() => void refresh()} type="button" variant="secondary">
+              Tentar novamente
+            </Button>
+          )}
+        </div>
       )}
 
       {loading ? (
@@ -214,28 +218,15 @@ export function ClassTeacherManagementPage() {
                       <p className="font-medium text-on-surface">{teacher.name}</p>
                       <p className="text-body-small text-muted">{teacher.email}</p>
                     </div>
-                    <button
-                      className={dangerButtonClass}
+                    <Button
                       disabled={busy}
+                      leadingIcon="delete"
                       onClick={() => setPendingRemoval(teacher)}
                       type="button"
+                      variant="danger"
                     >
-                      <svg
-                        aria-hidden="true"
-                        className="mr-2 inline size-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"
-                          stroke="currentColor"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="1.8"
-                        />
-                      </svg>
                       Remover professor
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -257,7 +248,11 @@ export function ClassTeacherManagementPage() {
                 Busque pelo nome ou e-mail e associe um professor disponível.
               </p>
             </div>
-            <form className="space-y-3" onSubmit={(event) => void searchTeachers(event)}>
+            <form
+              aria-busy={searching || busy}
+              className="space-y-3"
+              onSubmit={(event) => void searchTeachers(event)}
+            >
               <label
                 className="block space-y-2 text-label-large font-medium text-on-surface"
                 htmlFor="teacher-search"
@@ -286,33 +281,21 @@ export function ClassTeacherManagementPage() {
                         <p className="font-medium text-on-surface">{candidate.name}</p>
                         <p className="text-body-small text-muted">{candidate.email}</p>
                       </div>
-                      <button
-                        className={primaryButtonClass}
+                      <Button
                         disabled={busy}
+                        leadingIcon="add"
                         onClick={() => void addTeacher(candidate.teacherId)}
                         type="button"
+                        variant="primary"
                       >
-                        <svg
-                          aria-hidden="true"
-                          className="mr-2 inline size-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            d="M12 5v14M5 12h14"
-                            stroke="currentColor"
-                            strokeLinecap="round"
-                            strokeWidth="1.8"
-                          />
-                        </svg>
                         {busy ? 'Associando…' : 'Associar professor'}
-                      </button>
+                      </Button>
                     </li>
                   ))}
                 </ul>
               )}
               {hasSearched && availableCandidates.length === 0 && (
-                <p className="text-body-medium text-muted">
+                <p aria-live="polite" className="text-body-medium text-muted" role="status">
                   Nenhum professor disponível para associação com esta busca.
                 </p>
               )}
