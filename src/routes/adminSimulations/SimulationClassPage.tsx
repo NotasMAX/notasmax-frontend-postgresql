@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
 import { loadAdminClasses, type AdminClassOption } from '../../api/adminAcademicCatalog';
 import { GENERIC_API_ERROR_MESSAGE, getApiProblemPresentation } from '../../api/problemDetails';
+import { ActionLink } from '../../components/ActionLink';
 import { Badge } from '../../components/Badge';
 import { SelectField } from '../../components/SelectField';
 import { classLabel } from '../adminAccounts/accountUi';
@@ -119,12 +119,12 @@ export function SimulationClassPage() {
                 </div>
                 {schoolClass.isClosed && <Badge tone="warning">Fechada</Badge>}
               </div>
-              <Link
-                className="account-button-secondary inline-flex min-h-11 items-center justify-center rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              <ActionLink
+                className="px-4"
                 to={`/admin/turmas/${encodeURIComponent(schoolClass.classId)}/simulados`}
               >
                 {schoolClass.isClosed ? 'Consultar histórico' : 'Ver simulados'}
-              </Link>
+              </ActionLink>
             </li>
           ))}
         </ul>

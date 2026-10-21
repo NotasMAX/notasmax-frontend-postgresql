@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { loadAdminClasses } from '../../api/adminAcademicCatalog';
 import {
   type OfferedSubject,
@@ -13,6 +13,9 @@ import {
   type SimulationResultStatus,
 } from '../../api/adminSimulationResults';
 import { Badge } from '../../components/Badge';
+import { ActionLink } from '../../components/ActionLink';
+import { Alert } from '../../components/Alert';
+import { Button } from '../../components/Button';
 import { SelectField } from '../../components/SelectField';
 import { GENERIC_API_ERROR_MESSAGE, getApiProblemPresentation } from '../../api/problemDetails';
 import { classLabel } from '../adminAccounts/accountUi';
@@ -50,6 +53,13 @@ export function SimulationResultsPage() {
     status?: SimulationResultStatus;
   }>({});
   const [reloadToken, setReloadToken] = useState(0);
+
+  function retryResults() {
+    setLoading(true);
+    setError(null);
+    setNotRealized(false);
+    setReloadToken((current) => current + 1);
+  }
 
   useEffect(() => {
     if (!classId || !simulationId) return;
@@ -102,12 +112,11 @@ export function SimulationResultsPage() {
 
   return (
     <section aria-labelledby="simulation-results-title" className="space-y-6">
-      <Link
-        className="account-button-secondary inline-flex min-h-11 items-center justify-center rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      <ActionLink
         to={`/admin/turmas/${encodeURIComponent(classId)}/simulados/${encodeURIComponent(simulationId)}`}
       >
         ← Voltar ao simulado
-      </Link>
+      </ActionLink>
       <header className="space-y-2">
         <p className="text-label-large font-semibold uppercase tracking-wide text-primary">
           {className}
@@ -124,12 +133,12 @@ export function SimulationResultsPage() {
       </header>
 
       {error && (
-        <p
-          className="rounded-lg border border-danger bg-error-surface p-4 text-body-medium text-danger"
-          role="alert"
-        >
-          {error}
-        </p>
+        <div className="space-y-3">
+          <Alert tone="danger">{error}</Alert>
+          <Button leadingIcon="refresh" onClick={retryResults} variant="secondary">
+            Tentar carregar resultados novamente
+          </Button>
+        </div>
       )}
       {notRealized && !loading && !error && (
         <p
@@ -290,50 +299,45 @@ export function SimulationResultsPage() {
                           </dd>
                         </div>
                         <div>
-                          <dt className="text-muted">Contribuição</dt>
+                          <dt className="text-muted">Média parcial</dt>
                           <dd className="font-medium text-on-surface">
                             {resultNumberLabel(item.weightedContribution)}
                           </dd>
                         </div>
                       </dl>
-                      <Link
-                        className="account-button-secondary inline-flex min-h-11 items-center justify-center rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                        to={resultHref(classId, simulationId, item)}
-                      >
+                      <ActionLink className="px-4" to={resultHref(classId, simulationId, item)}>
                         Ver resultado
-                      </Link>
+                      </ActionLink>
                     </li>
                   ))}
                 </ul>
                 <nav
                   aria-label="Paginação de resultados"
-                  className="panel-surface flex flex-col gap-3 rounded-2xl bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    <Button
                       disabled={loading || page <= 1}
                       onClick={() => {
                         setLoading(true);
                         setError(null);
                         setPage((current) => current - 1);
                       }}
-                      type="button"
+                      variant="secondary"
                     >
                       Anterior
-                    </button>
-                    <button
-                      className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    </Button>
+                    <Button
                       disabled={loading || page >= totalPages}
                       onClick={() => {
                         setLoading(true);
                         setError(null);
                         setPage((current) => current + 1);
                       }}
-                      type="button"
+                      variant="secondary"
                     >
                       Próxima
-                    </button>
+                    </Button>
                   </div>
                   <p aria-live="polite" className="text-body-medium text-muted">
                     {pageData.pagination.totalItems} resultado(s) · página{' '}

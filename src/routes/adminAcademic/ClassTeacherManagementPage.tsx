@@ -17,6 +17,7 @@ import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { CenteredSubmitButton } from '../../components/CenteredSubmitButton';
+import { Toast } from '../../components/Toast';
 import { accountErrorMessage } from '../adminAccounts/accountUi';
 import { AcademicPageLayout } from './AcademicPageLayout';
 const inputClass =
@@ -41,7 +42,9 @@ export function ClassTeacherManagementPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [initialLoadFailed, setInitialLoadFailed] = useState(false);
   const [pendingRemoval, setPendingRemoval] = useState<TeacherAssociation | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const mutationInFlight = useRef(false);
+  const dismissToast = useCallback(() => setToastMessage(null), []);
 
   const refresh = useCallback(async () => {
     if (!classId || !subjectId) {
@@ -110,6 +113,7 @@ export function ClassTeacherManagementPage() {
       await addAcademicTeacher(classId, subjectId, teacherId, teachers.etag);
       setTeacherCandidates([]);
       setHasSearched(false);
+      setToastMessage('Professor associado à matéria.');
       await refresh();
     } catch (error) {
       setErrorMessage(accountErrorMessage(error));
@@ -137,6 +141,7 @@ export function ClassTeacherManagementPage() {
     try {
       await removeAcademicTeacher(classId, subjectId, pendingRemoval.teacherId, teachers.etag);
       setPendingRemoval(null);
+      setToastMessage('Professor removido da matéria.');
       await refresh();
     } catch (error) {
       setPendingRemoval(null);
@@ -168,6 +173,7 @@ export function ClassTeacherManagementPage() {
           Voltar à turma
         </ActionLink>
       </div>
+      {toastMessage && <Toast message={toastMessage} onDismiss={dismissToast} tone="success" />}
 
       {errorMessage && (
         <div className="flex flex-col items-start gap-3">

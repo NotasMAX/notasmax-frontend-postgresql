@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Button } from './Button';
 import { Icon, type IconName } from './Icon';
 
@@ -13,6 +13,7 @@ interface ToastProps {
   /** Duration in milliseconds. Use 0 to keep the toast visible until dismissed. */
   readonly durationMs?: number;
   readonly onDismiss: () => void;
+  readonly fallbackFocusTarget?: () => HTMLElement | null;
 }
 
 const positionClasses: Readonly<Record<ToastPosition, string>> = {
@@ -44,7 +45,17 @@ export function Toast({
   position = 'top-right',
   durationMs = 5000,
   onDismiss,
+  fallbackFocusTarget,
 }: ToastProps) {
+  const returnFocusTo = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement && activeElement !== document.body) {
+      returnFocusTo.current = activeElement;
+    }
+  }, []);
+
   useEffect(() => {
     if (durationMs <= 0) {
       return;
@@ -54,6 +65,20 @@ export function Toast({
   }, [durationMs, message, onDismiss]);
 
   const isError = tone === 'error';
+
+  function dismissManually() {
+    onDismiss();
+    const target = returnFocusTo.current;
+    if (target?.isConnected && !target.matches(':disabled')) {
+      target.focus();
+      if (document.activeElement === target) return;
+    }
+
+    const fallbackTarget = fallbackFocusTarget?.();
+    if (fallbackTarget?.isConnected && !fallbackTarget.matches(':disabled')) {
+      fallbackTarget.focus();
+    }
+  }
 
   return (
     <div
@@ -68,7 +93,7 @@ export function Toast({
         aria-label="Fechar notificação"
         className="justify-self-end"
         leadingIcon="close"
-        onClick={onDismiss}
+        onClick={dismissManually}
         size="icon"
         type="button"
         variant="text"

@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useLocation, useParams } from 'react-router';
 import { loadAdminClasses, type AdminClassOption } from '../../api/adminAcademicCatalog';
 import {
   listOfferedSubjects,
@@ -10,7 +10,11 @@ import {
   type SimulationPage,
 } from '../../api/adminSimulations';
 import { GENERIC_API_ERROR_MESSAGE, getApiProblemPresentation } from '../../api/problemDetails';
+import { ActionLink } from '../../components/ActionLink';
+import { Alert } from '../../components/Alert';
 import { Badge } from '../../components/Badge';
+import { Button } from '../../components/Button';
+import { Toast } from '../../components/Toast';
 import { SelectField } from '../../components/SelectField';
 import { civilDateLabel, classLabel } from '../adminAccounts/accountUi';
 import { SimulationActionIcon } from './SimulationActionIcon';
@@ -37,8 +41,16 @@ function typeLabel(type: Simulation['type']): string {
   return type === 'objetivo' ? 'Objetivo' : 'Dissertativo';
 }
 
+function deletedSimulationNumberFromState(value: unknown): number | undefined {
+  if (typeof value !== 'object' || value === null) return undefined;
+  const number = (value as { readonly deletedSimulationNumber?: unknown }).deletedSimulationNumber;
+  return Number.isSafeInteger(number) && Number(number) > 0 ? Number(number) : undefined;
+}
+
 export function SimulationListPage() {
   const { classId } = useParams();
+  const location = useLocation();
+  const deletedNumber = deletedSimulationNumberFromState(location.state);
   const [schoolClass, setSchoolClass] = useState<AdminClassOption | null>(null);
   const [subjects, setSubjects] = useState<OfferedSubject[]>([]);
   const [draft, setDraft] = useState<SimulationFiltersDraft>(emptySimulationFilters);
@@ -51,6 +63,12 @@ export function SimulationListPage() {
   const [classError, setClassError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [filterError, setFilterError] = useState<string | null>(null);
+  const [classRetryToken, setClassRetryToken] = useState(0);
+  const [reloadToken, setReloadToken] = useState(0);
+  const [toastMessage, setToastMessage] = useState<string | null>(() =>
+    deletedNumber === undefined ? null : `Simulado nº ${deletedNumber} excluído.`,
+  );
+  const dismissToast = useCallback(() => setToastMessage(null), []);
 
   useEffect(() => {
     if (!classId) return;
@@ -77,7 +95,7 @@ export function SimulationListPage() {
     return () => {
       active = false;
     };
-  }, [classId]);
+  }, [classId, classRetryToken]);
 
   useEffect(() => {
     if (!classId) return;
@@ -99,7 +117,7 @@ export function SimulationListPage() {
     return () => {
       active = false;
     };
-  }, [classId, filters]);
+  }, [classId, filters, reloadToken]);
 
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -122,27 +140,37 @@ export function SimulationListPage() {
     setFilters(readFilters(clean, 1));
   }
 
+  function retryClass() {
+    setClassLoading(true);
+    setClassError(null);
+    setClassRetryToken((current) => current + 1);
+  }
+
+  function retryList() {
+    setListLoading(true);
+    setListError(null);
+    setReloadToken((current) => current + 1);
+  }
+
   if (!classId) return null;
   return (
     <section aria-labelledby="simulations-title" className="space-y-6">
-      <Link
-        className="account-button-secondary inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-panel-outline bg-surface px-3 text-label-medium font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        to="/admin/simulados"
-      >
+      {toastMessage && <Toast message={toastMessage} onDismiss={dismissToast} tone="success" />}
+      <ActionLink className="px-3" size="compact" to="/admin/simulados">
         ← Escolher outra turma
-      </Link>
+      </ActionLink>
       {classLoading && (
         <p aria-live="polite" className="text-body-large text-muted" role="status">
           Carregando turma…
         </p>
       )}
       {classError && (
-        <p
-          className="rounded-lg border border-danger bg-error-surface p-4 text-body-medium text-danger"
-          role="alert"
-        >
-          {classError}
-        </p>
+        <div className="space-y-3">
+          <Alert tone="danger">{classError}</Alert>
+          <Button leadingIcon="refresh" onClick={retryClass} variant="secondary">
+            Tentar carregar turma novamente
+          </Button>
+        </div>
       )}
       {!classLoading && !classError && schoolClass && (
         <>
@@ -163,13 +191,14 @@ export function SimulationListPage() {
               )}
             </div>
             {!schoolClass.isClosed && (
-              <Link
-                className="account-button-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              <ActionLink
+                className="px-4"
+                leadingIcon="add"
+                variant="primary"
                 to={`/admin/turmas/${encodeURIComponent(classId)}/simulados/novo`}
               >
-                <SimulationActionIcon name="plus" />
                 Novo simulado
-              </Link>
+              </ActionLink>
             )}
           </div>
 
@@ -296,29 +325,28 @@ export function SimulationListPage() {
               </p>
             )}
             <div className="flex flex-wrap gap-3 sm:col-span-2 xl:col-span-3">
-              <button
-                className="account-button-primary min-h-11 rounded-lg bg-primary px-5 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                type="submit"
-              >
+              <Button className="px-5" leadingIcon="filter" type="submit" variant="primary">
                 Aplicar filtros
-              </button>
-              <button
-                className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-5 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              </Button>
+              <Button
+                className="px-5"
+                leadingIcon="clear"
                 onClick={resetFilters}
                 type="button"
+                variant="secondary"
               >
                 Limpar filtros
-              </button>
+              </Button>
             </div>
           </form>
 
           {listError && (
-            <p
-              className="rounded-lg border border-danger bg-error-surface p-4 text-body-medium text-danger"
-              role="alert"
-            >
-              {listError}
-            </p>
+            <div className="space-y-3">
+              <Alert tone="danger">{listError}</Alert>
+              <Button leadingIcon="refresh" onClick={retryList} variant="secondary">
+                Tentar carregar simulados novamente
+              </Button>
+            </div>
           )}
           {listLoading && (
             <p aria-live="polite" className="text-body-large text-muted" role="status">
@@ -337,7 +365,7 @@ export function SimulationListPage() {
               <ul className="space-y-3">
                 {result.items.map((simulation) => (
                   <li
-                    className="panel-surface flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-surface p-5"
+                    className="panel-surface flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-surface p-5 transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
                     key={simulation.simulationId}
                   >
                     <div className="space-y-1">
@@ -351,46 +379,45 @@ export function SimulationListPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       {simulation.realizedAt && <Badge tone="positive">Realizado</Badge>}
-                      <Link
-                        className="account-button-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      <ActionLink
+                        className="px-4"
+                        variant="primary"
                         to={`/admin/turmas/${encodeURIComponent(classId)}/simulados/${encodeURIComponent(simulation.simulationId)}`}
                       >
                         <SimulationActionIcon name="arrow-right" />
                         Abrir detalhe
-                      </Link>
+                      </ActionLink>
                     </div>
                   </li>
                 ))}
               </ul>
               <nav
                 aria-label="Paginação de simulados"
-                className="panel-surface flex flex-col gap-3 rounded-2xl bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+                  <Button
                     disabled={listLoading || filters.page <= 1}
                     onClick={() => {
                       setListLoading(true);
                       setListError(null);
                       setFilters({ ...filters, page: filters.page - 1 });
                     }}
-                    type="button"
+                    variant="secondary"
                   >
                     Anterior
-                  </button>
-                  <button
-                    className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+                  </Button>
+                  <Button
                     disabled={listLoading || filters.page >= result.pagination.totalPages}
                     onClick={() => {
                       setListLoading(true);
                       setListError(null);
                       setFilters({ ...filters, page: filters.page + 1 });
                     }}
-                    type="button"
+                    variant="secondary"
                   >
                     Próxima
-                  </button>
+                  </Button>
                 </div>
                 <p aria-live="polite" className="text-body-medium text-muted">
                   {result.pagination.totalItems} simulados · página {result.pagination.page} de{' '}

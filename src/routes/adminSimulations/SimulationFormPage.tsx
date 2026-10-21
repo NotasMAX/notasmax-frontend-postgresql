@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { loadAdminClasses, type AdminClassOption } from '../../api/adminAcademicCatalog';
 import {
   createSimulation,
@@ -11,6 +11,8 @@ import {
   type Simulation,
 } from '../../api/adminSimulations';
 import { classLabel, civilDateLabel } from '../adminAccounts/accountUi';
+import { ActionLink } from '../../components/ActionLink';
+import { Button } from '../../components/Button';
 import {
   allocatedWeight,
   asSimulationSubjects,
@@ -193,7 +195,7 @@ export function SimulationFormPage() {
         await updateSimulation(classId, simulationId, input, etag);
         navigate(
           `/admin/turmas/${encodeURIComponent(classId)}/simulados/${encodeURIComponent(simulationId)}`,
-          { replace: true },
+          { replace: true, state: { updated: true } },
         );
       } else {
         const created = await createSimulation(classId, input);
@@ -225,12 +227,9 @@ export function SimulationFormPage() {
       aria-labelledby="simulation-form-title"
       className="mx-auto w-full max-w-[45rem] space-y-6"
     >
-      <Link
-        className="account-button-secondary inline-flex min-h-11 items-center justify-center rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        to={`/admin/turmas/${encodeURIComponent(classId)}/simulados`}
-      >
+      <ActionLink to={`/admin/turmas/${encodeURIComponent(classId)}/simulados`}>
         ← Voltar aos simulados
-      </Link>
+      </ActionLink>
       <div>
         <h1
           className="text-headline-medium font-semibold text-on-surface"
@@ -408,13 +407,9 @@ export function SimulationFormPage() {
                     Os saldos são estimativas. A distribuição será conferida ao salvar.
                   </p>
                 </div>
-                <button
-                  className="account-button-primary min-h-10 rounded-lg bg-primary px-3 text-label-medium font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  onClick={restoreSubjects}
-                  type="button"
-                >
+                <Button size="compact" onClick={restoreSubjects} variant="secondary">
                   Restaurar todas
-                </button>
+                </Button>
               </div>
               {offeredSubjects.length === 0 && (
                 <p className="rounded-lg border border-warning bg-warning-surface p-4 text-body-medium text-on-surface">
@@ -447,14 +442,15 @@ export function SimulationFormPage() {
                         <h3 className="text-title-small font-semibold text-on-surface">
                           {subject.name}
                         </h3>
-                        <button
+                        <Button
                           aria-label={`Remover ${subject.name}`}
-                          className="min-h-10 rounded-lg px-3 text-label-medium font-medium text-danger underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-danger"
+                          className="text-danger underline-offset-4 hover:underline"
                           onClick={() => removeSubject(subject.subjectId)}
-                          type="button"
+                          size="compact"
+                          variant="text"
                         >
                           Remover
-                        </button>
+                        </Button>
                       </div>
                       <div className="mt-3 grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
@@ -545,19 +541,17 @@ export function SimulationFormPage() {
             </p>
           )}
           <div className="flex flex-wrap gap-3">
-            <button
-              className="account-button-primary min-h-12 rounded-lg bg-primary px-6 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
+            <Button
               disabled={pending || offeredSubjects.length === 0 || (editing && etag === undefined)}
+              size="large"
               type="submit"
+              variant="primary"
             >
               {pending ? 'Salvando…' : 'Salvar simulado'}
-            </button>
-            <Link
-              className="account-button-secondary inline-flex min-h-12 items-center justify-center rounded-lg bg-surface px-6 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              to={`/admin/turmas/${encodeURIComponent(classId)}/simulados`}
-            >
+            </Button>
+            <ActionLink size="large" to={`/admin/turmas/${encodeURIComponent(classId)}/simulados`}>
               Cancelar
-            </Link>
+            </ActionLink>
           </div>
         </form>
       )}

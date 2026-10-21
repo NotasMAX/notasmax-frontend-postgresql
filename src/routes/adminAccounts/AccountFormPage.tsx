@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import type { AccountProfile, StudentAccountDetail } from '../../api/adminAccounts';
 import {
   accountIdentifier,
@@ -12,10 +12,9 @@ import {
   type AccountPatchInput,
 } from '../../accounts/accountService';
 import { MAXIMUM_PASSWORD_LENGTH, MINIMUM_PASSWORD_LENGTH } from '../../auth/passwordPolicy';
+import { ActionLink } from '../../components/ActionLink';
 import { Button } from '../../components/Button';
-import { Icon } from '../../components/Icon';
 import { Toast } from '../../components/Toast';
-import { actionClassName } from '../../components/actionStyles';
 import { AccountPageShell } from './AccountPageShell';
 import {
   type AccountFormErrors,
@@ -322,8 +321,7 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
           <p aria-live="assertive" className="text-body-medium text-danger" role="alert">
             {loadError}
           </p>
-          <button
-            className="account-button-secondary min-h-11 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary"
+          <Button
             onClick={() => {
               setLoading(true);
               setLoadError(null);
@@ -337,10 +335,10 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
                   .finally(() => setLoading(false));
               }
             }}
-            type="button"
+            variant="secondary"
           >
             Tentar novamente
-          </button>
+          </Button>
         </div>
       </AccountPageShell>
     );
@@ -363,23 +361,19 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
     <AccountPageShell
       actions={
         editing && account ? (
-          <Link
-            className="account-button-secondary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          <ActionLink
+            className="px-4"
+            leadingIcon="arrowBack"
             to={
               accountCollectionPath(profile) + '/' + encodeURIComponent(accountIdentifier(account))
             }
           >
-            <Icon name="arrowBack" />
             Voltar à conta
-          </Link>
+          </ActionLink>
         ) : !editing ? (
-          <Link
-            className="account-button-secondary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            to={accountCollectionPath(profile)}
-          >
-            <Icon name="arrowBack" />
+          <ActionLink className="px-4" leadingIcon="arrowBack" to={accountCollectionPath(profile)}>
             Voltar à lista
-          </Link>
+          </ActionLink>
         ) : undefined
       }
       description={description}
@@ -516,8 +510,9 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
             >
               {saving ? 'Salvando…' : editing ? 'Salvar alterações' : accountRegisterLabel(profile)}
             </Button>
-            <Link
-              className={actionClassName('secondary', 'large')}
+            <ActionLink
+              leadingIcon="close"
+              size="large"
               to={
                 editing && account
                   ? accountCollectionPath(profile) +
@@ -526,9 +521,8 @@ export function AccountFormPage({ profile, accountId }: AccountFormPageProps) {
                   : accountCollectionPath(profile)
               }
             >
-              <Icon name="close" />
               Cancelar
-            </Link>
+            </ActionLink>
           </div>
         </form>
       </div>

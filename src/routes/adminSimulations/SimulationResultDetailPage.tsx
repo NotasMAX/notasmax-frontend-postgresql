@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import {
   getSimulationResult,
   updateSimulationResult,
@@ -7,8 +7,11 @@ import {
   type SimulationResultStatus,
 } from '../../api/adminSimulationResults';
 import { GENERIC_API_ERROR_MESSAGE, getApiProblemPresentation } from '../../api/problemDetails';
+import { ActionLink } from '../../components/ActionLink';
 import { Badge } from '../../components/Badge';
+import { Button } from '../../components/Button';
 import { SelectField } from '../../components/SelectField';
+import { Toast } from '../../components/Toast';
 import { resultNumberLabel, resultStatusLabel, resultStatusTone } from '../../results/resultUi';
 
 function publicError(error: unknown): string {
@@ -28,7 +31,9 @@ export function SimulationResultDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const mutationStarted = useRef(false);
+  const dismissToast = useCallback(() => setToastMessage(null), []);
 
   const load = useCallback(async () => {
     if (!classId || !simulationId || !studentId || !subjectId) return null;
@@ -67,6 +72,7 @@ export function SimulationResultDetailPage() {
     setDraftCorrectAnswers(result.correctAnswers === null ? '' : String(result.correctAnswers));
     setFormError(null);
     setFeedback(null);
+    setToastMessage(null);
     setEditing(true);
   }
 
@@ -134,7 +140,8 @@ export function SimulationResultDetailPage() {
       setResult(saved.result);
       setEtag(saved.etag);
       setEditing(false);
-      setFeedback('Resultado salvo.');
+      setFeedback(null);
+      setToastMessage('Resultado salvo.');
     } catch (reason) {
       setError(publicError(reason));
       setEditing(false);
@@ -146,12 +153,8 @@ export function SimulationResultDetailPage() {
 
   return (
     <section aria-labelledby="simulation-result-title" className="mx-auto max-w-4xl space-y-6">
-      <Link
-        className="account-button-secondary inline-flex min-h-11 items-center justify-center rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        to={listPath}
-      >
-        ← Voltar aos resultados
-      </Link>
+      {toastMessage && <Toast message={toastMessage} onDismiss={dismissToast} tone="success" />}
+      <ActionLink to={listPath}>← Voltar aos resultados</ActionLink>
       {loading ? (
         <p aria-live="polite" className="py-8 text-center text-body-large text-muted" role="status">
           Carregando resultado…
@@ -164,14 +167,14 @@ export function SimulationResultDetailPage() {
           >
             {error}
           </p>
-          <button
-            className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
+          <Button
             disabled={refreshing}
+            leadingIcon="refresh"
             onClick={() => void refreshResult()}
-            type="button"
+            variant="secondary"
           >
             {refreshing ? 'Atualizando…' : 'Atualizar resultado'}
-          </button>
+          </Button>
         </div>
       ) : result ? (
         <>
@@ -238,7 +241,7 @@ export function SimulationResultDetailPage() {
                 </dd>
               </div>
               <div>
-                <dt className="text-label-medium font-medium text-muted">Contribuição ponderada</dt>
+                <dt className="text-label-medium font-medium text-muted">Média parcial</dt>
                 <dd className="mt-1 text-body-large text-on-surface">
                   {resultNumberLabel(result.weightedContribution)}
                 </dd>
@@ -247,13 +250,9 @@ export function SimulationResultDetailPage() {
 
             {!editing ? (
               <div className="flex flex-wrap gap-3 sm:col-span-2">
-                <button
-                  className="account-button-primary min-h-11 rounded-lg bg-primary px-5 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  onClick={beginEditing}
-                  type="button"
-                >
+                <Button onClick={beginEditing} variant="primary">
                   Editar
-                </button>
+                </Button>
               </div>
             ) : (
               <form
@@ -334,28 +333,27 @@ export function SimulationResultDetailPage() {
                   </p>
                 )}
                 <div className="flex flex-wrap gap-3">
-                  <button
-                    className="account-button-primary min-h-11 rounded-lg bg-primary px-5 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
+                  <Button
                     disabled={
                       pending ||
                       draftStatus === 'pending' ||
                       (result.status === 'absent' && draftStatus === 'absent')
                     }
                     type="submit"
+                    variant="primary"
                   >
                     {pending ? 'Salvando…' : 'Salvar'}
-                  </button>
-                  <button
-                    className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
+                  </Button>
+                  <Button
                     disabled={pending}
                     onClick={() => {
                       setEditing(false);
                       setFormError(null);
                     }}
-                    type="button"
+                    variant="secondary"
                   >
                     Cancelar
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}

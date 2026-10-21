@@ -475,14 +475,16 @@ describe('account management pages', () => {
 
     expect(await screen.findByRole('heading', { name: 'Contas de alunos' })).toBeTruthy();
     expect(
-      await screen.findByText(
-        'Conta cadastrada com sucesso, mas não foi possível enviar o link de ativação.',
-      ),
+      await screen.findByText(/Conta cadastrada, mas não foi possível enviar o link de ativação/),
     ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Tentar localizar conta novamente' })).toBeTruthy();
     expect(screen.getByLabelText('Buscar por nome ou e-mail')).toHaveProperty(
       'value',
       'katherine@example.test',
     );
+
+    await user.click(screen.getByRole('button', { name: 'Tentar localizar conta novamente' }));
+    await waitFor(() => expect(accountService.loadAccountPage).toHaveBeenCalledTimes(2));
   });
 
   it('requires current administrator password for email change and offers explicit activation resend', async () => {

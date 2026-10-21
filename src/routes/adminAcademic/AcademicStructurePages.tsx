@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import type { AdminClass, AdminSubjectOption } from '../../api/adminAcademicCatalog';
 import {
   createAcademicClass,
@@ -21,6 +21,7 @@ import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { CenteredSubmitButton } from '../../components/CenteredSubmitButton';
 import { SelectField } from '../../components/SelectField';
+import { Toast } from '../../components/Toast';
 import { AcademicPageLayout } from './AcademicPageLayout';
 import {
   closeAcademicClass,
@@ -32,6 +33,12 @@ const PAGE_SIZE = 20;
 const CLASS_SERIES_OPTIONS = [1, 2, 3] as const;
 const fieldClass =
   'min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2';
+
+function toastMessageFromState(value: unknown): string | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const message = (value as { readonly toastMessage?: unknown }).toastMessage;
+  return typeof message === 'string' ? message : null;
+}
 
 function LoadError({ message, retry }: { readonly message: string; readonly retry: () => void }) {
   return (
@@ -203,9 +210,12 @@ export function AcademicSubjectListPage() {
 
 export function AcademicSubjectDetailPage() {
   const { subjectId } = useParams();
+  const location = useLocation();
   const [subject, setSubject] = useState<AdminSubjectOption | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState(() => toastMessageFromState(location.state));
+  const dismissToast = useCallback(() => setToastMessage(null), []);
 
   async function refresh() {
     if (!subjectId) return;
@@ -247,6 +257,7 @@ export function AcademicSubjectDetailPage() {
       description="Veja os detalhes desta matéria."
       title={subject?.name ?? 'Detalhes da matéria'}
     >
+      {toastMessage && <Toast message={toastMessage} onDismiss={dismissToast} tone="success" />}
       {loading ? (
         <p aria-live="polite" className="py-8 text-center text-body-large text-muted" role="status">
           Carregando matéria…
@@ -322,6 +333,7 @@ export function AcademicSubjectFormPage() {
           });
       navigate(`/admin/estrutura/materias/${encodeURIComponent(subject.subjectId)}`, {
         replace: true,
+        state: { toastMessage: editing ? 'Matéria atualizada.' : 'Matéria cadastrada.' },
       });
       completed = true;
     } catch (error) {
@@ -560,6 +572,7 @@ export function AcademicClassListPage() {
 
 export function AcademicClassDetailPage() {
   const { classId } = useParams();
+  const location = useLocation();
   const [schoolClass, setSchoolClass] = useState<AdminClass | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -567,7 +580,9 @@ export function AcademicClassDetailPage() {
   const [confirmClose, setConfirmClose] = useState(false);
   const [closing, setClosing] = useState(false);
   const [closed, setClosed] = useState(false);
+  const [toastMessage, setToastMessage] = useState(() => toastMessageFromState(location.state));
   const closureInFlight = useRef(false);
+  const dismissToast = useCallback(() => setToastMessage(null), []);
 
   async function refresh() {
     if (!classId) return;
@@ -648,6 +663,7 @@ export function AcademicClassDetailPage() {
           : 'Detalhes da turma'
       }
     >
+      {toastMessage && <Toast message={toastMessage} onDismiss={dismissToast} tone="success" />}
       {loading ? (
         <p aria-live="polite" className="py-8 text-center text-body-large text-muted" role="status">
           Carregando turma…
@@ -794,7 +810,10 @@ export function AcademicClassFormPage() {
       const result = editing
         ? await updateAcademicClass(classId!, { series: selectedSeries, schoolYear: year }, etag!)
         : await createAcademicClass({ series: selectedSeries, schoolYear: year, startDate });
-      navigate(`/admin/estrutura/turmas/${encodeURIComponent(result.classId)}`, { replace: true });
+      navigate(`/admin/estrutura/turmas/${encodeURIComponent(result.classId)}`, {
+        replace: true,
+        state: { toastMessage: editing ? 'Turma atualizada.' : 'Turma cadastrada.' },
+      });
     } catch (error) {
       setErrorMessage(accountErrorMessage(error));
     } finally {
@@ -815,7 +834,10 @@ export function AcademicClassFormPage() {
         { series: Number(series), schoolYear: Number(schoolYear), startDate },
         closures,
       );
-      navigate(`/admin/estrutura/turmas/${encodeURIComponent(created.classId)}`, { replace: true });
+      navigate(`/admin/estrutura/turmas/${encodeURIComponent(created.classId)}`, {
+        replace: true,
+        state: { toastMessage: 'Turma cadastrada.' },
+      });
       completed = true;
     } catch (error) {
       setConfirmCreate(false);

@@ -18,7 +18,10 @@ import {
   type AccountListItem,
 } from '../../accounts/accountService';
 import { AccountPageShell } from './AccountPageShell';
+import { ActionLink } from '../../components/ActionLink';
+import { Alert } from '../../components/Alert';
 import { Badge } from '../../components/Badge';
+import { Button } from '../../components/Button';
 import { Icon } from '../../components/Icon';
 import { SelectField } from '../../components/SelectField';
 import { Toast } from '../../components/Toast';
@@ -163,9 +166,16 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
   const [filterValidationError, setFilterValidationError] = useState<string | null>(null);
   const [filterOptionsRetry, setFilterOptionsRetry] = useState(0);
   const [showCreatedToast, setShowCreatedToast] = useState(
-    initialState.activationEmailStatus !== undefined,
+    initialState.activationEmailStatus === 'sent',
   );
   const dismissCreatedToast = useCallback(() => setShowCreatedToast(false), []);
+  const createdAccountForRecovery =
+    initialState.activationEmailStatus === 'failed' && initialState.search
+      ? result?.items.find(
+          (account) =>
+            account.email.trim().toLowerCase() === initialState.search?.trim().toLowerCase(),
+        )
+      : undefined;
 
   useEffect(() => {
     if (profile === 'administrator') return;
@@ -280,6 +290,40 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
           tone={initialState.activationEmailStatus === 'sent' ? 'success' : 'warning'}
         />
       )}
+      {initialState.activationEmailStatus === 'failed' && (
+        <div className="space-y-3">
+          <Alert tone="warning">
+            Conta cadastrada, mas não foi possível enviar o link de ativação. A conta permanece
+            pendente; abra os detalhes para tentar novamente.
+          </Alert>
+          {createdAccountForRecovery && (
+            <ActionLink
+              leadingIcon="view"
+              to={
+                accountCollectionPath(profile) +
+                '/' +
+                encodeURIComponent(accountIdentifier(createdAccountForRecovery))
+              }
+            >
+              Abrir conta para reenviar ativação
+            </ActionLink>
+          )}
+          {!createdAccountForRecovery && (
+            <Button
+              leadingIcon="refresh"
+              onClick={() => {
+                setLoading(true);
+                setErrorMessage(null);
+                setFilters({ ...filters });
+              }}
+              type="button"
+              variant="secondary"
+            >
+              Tentar localizar conta novamente
+            </Button>
+          )}
+        </div>
+      )}
       <form
         aria-label="Filtros de contas"
         className="panel-surface space-y-4 rounded-2xl bg-surface p-5 sm:p-6"
@@ -290,17 +334,18 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
             <p className="text-body-medium text-danger" role="alert">
               {filterOptionsError}
             </p>
-            <button
-              className="account-button-secondary min-h-10 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary"
+            <Button
+              className="px-4"
               onClick={() => {
                 setFilterOptionsLoading(true);
                 setFilterOptionsError(null);
                 setFilterOptionsRetry((attempt) => attempt + 1);
               }}
-              type="button"
+              size="compact"
+              variant="secondary"
             >
               Tentar carregar filtros novamente
-            </button>
+            </Button>
           </div>
         )}
         {filterOptionsLoading && profile !== 'administrator' && (
@@ -420,21 +465,12 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
           </p>
         )}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button
-            className="account-button-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            type="submit"
-          >
-            <Icon name="filter" />
+          <Button className="px-5" leadingIcon="filter" type="submit" variant="primary">
             Aplicar filtros
-          </button>
-          <button
-            className="account-button-secondary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-panel-outline px-5 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            onClick={clearFilters}
-            type="button"
-          >
-            <Icon name="clear" />
+          </Button>
+          <Button className="px-5" leadingIcon="clear" onClick={clearFilters} variant="secondary">
             Limpar filtros
-          </button>
+          </Button>
           <label className="flex items-center gap-2 text-body-medium text-on-surface sm:ml-auto">
             Itens por página
             <SelectField
@@ -454,13 +490,14 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
       </form>
 
       <div className="flex justify-end">
-        <Link
-          className="account-button-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        <ActionLink
+          className="px-4"
+          leadingIcon="add"
+          variant="primary"
           to={accountCollectionPath(profile) + '/novo'}
         >
-          <Icon name="add" />
           {accountRegisterLabel(profile)}
-        </Link>
+        </ActionLink>
       </div>
 
       {loading ? (
@@ -472,17 +509,16 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
           <p aria-live="assertive" className="text-body-medium text-danger" role="alert">
             {errorMessage}
           </p>
-          <button
-            className="account-button-secondary min-h-11 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary"
+          <Button
             onClick={() => {
               setLoading(true);
               setErrorMessage(null);
               setFilters({ ...filters });
             }}
-            type="button"
+            variant="secondary"
           >
             Tentar novamente
-          </button>
+          </Button>
         </div>
       ) : result ? (
         <>
@@ -552,26 +588,24 @@ export function AccountListPage({ profile, locationState }: AccountListPageProps
           )}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <nav aria-label="Paginação de contas" className="flex flex-wrap items-center gap-3">
-              <button
-                className="account-button-secondary min-h-11 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary disabled:cursor-not-allowed disabled:opacity-50"
+              <Button
                 disabled={loading || filters.page <= 1}
                 onClick={() => changePage(filters.page - 1)}
-                type="button"
+                variant="secondary"
               >
                 Anterior
-              </button>
-              <button
-                className="account-button-secondary min-h-11 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary disabled:cursor-not-allowed disabled:opacity-50"
+              </Button>
+              <Button
                 disabled={
                   loading ||
                   result.pagination.totalPages === 0 ||
                   filters.page >= result.pagination.totalPages
                 }
                 onClick={() => changePage(filters.page + 1)}
-                type="button"
+                variant="secondary"
               >
                 Próxima
-              </button>
+              </Button>
             </nav>
             <p aria-live="polite" className="text-body-medium text-muted" role="status">
               {result.pagination.totalItems === 0

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { loadAdminClasses, type AdminClassOption } from '../../api/adminAcademicCatalog';
 import {
   deleteSimulation,
@@ -10,7 +10,11 @@ import {
   type Simulation,
 } from '../../api/adminSimulations';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { ActionLink } from '../../components/ActionLink';
+import { Alert } from '../../components/Alert';
 import { Badge } from '../../components/Badge';
+import { Button } from '../../components/Button';
+import { Toast } from '../../components/Toast';
 import { classLabel, civilDateLabel } from '../adminAccounts/accountUi';
 import { simulationErrorMessage, SIMULATION_VERSION_UNAVAILABLE_MESSAGE } from './simulationErrors';
 
@@ -18,6 +22,7 @@ type ConfirmationAction = 'realize' | 'delete' | null;
 
 interface DetailLocationState {
   readonly createdNumber?: number;
+  readonly updated?: boolean;
 }
 
 function createdNumberFromState(value: unknown): number | undefined {
@@ -26,10 +31,17 @@ function createdNumberFromState(value: unknown): number | undefined {
   return Number.isSafeInteger(number) && Number(number) > 0 ? Number(number) : undefined;
 }
 
+function updatedFromState(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) return false;
+  return (value as DetailLocationState).updated === true;
+}
+
 export function SimulationDetailPage() {
   const { classId, simulationId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const createdNumber = createdNumberFromState(location.state);
+  const updated = updatedFromState(location.state);
   const [schoolClass, setSchoolClass] = useState<AdminClassOption | null>(null);
   const [simulation, setSimulation] = useState<Simulation | null>(null);
   const [subjects, setSubjects] = useState<OfferedSubject[]>([]);
@@ -38,9 +50,9 @@ export function SimulationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const mutationStarted = useRef(false);
-  const createdNumber = createdNumberFromState(location.state);
+  const dismissToast = useCallback(() => setToastMessage(null), []);
 
   const load = useCallback(async () => {
     if (!classId || !simulationId) return;
@@ -68,6 +80,11 @@ export function SimulationDetailPage() {
         setSubjects(result.subjects);
         setSimulation(result.simulation);
         setEtag(result.etag);
+        if (createdNumber === result.simulation.number) {
+          setToastMessage(`Simulado nº ${result.simulation.number} criado.`);
+        } else if (updated) {
+          setToastMessage('Simulado atualizado.');
+        }
       })
       .catch((reason: unknown) => {
         if (active)
@@ -83,7 +100,29 @@ export function SimulationDetailPage() {
     return () => {
       active = false;
     };
-  }, [load]);
+  }, [createdNumber, load, updated]);
+
+  async function retryLoad() {
+    setLoading(true);
+    setError(null);
+    try {
+      const refreshed = await load();
+      if (refreshed) {
+        setSchoolClass(refreshed.schoolClass);
+        setSubjects(refreshed.subjects);
+        setSimulation(refreshed.simulation);
+        setEtag(refreshed.etag);
+      }
+    } catch (reason) {
+      setError(
+        reason instanceof Error && reason.message === 'class-unavailable'
+          ? 'A turma não está disponível para consulta.'
+          : simulationErrorMessage(reason),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function confirmAction() {
     if (!classId || !simulationId || !etag || !confirmation || mutationStarted.current || pending)
@@ -96,7 +135,7 @@ export function SimulationDetailPage() {
         const result = await realizeSimulation(classId, simulationId, etag);
         setSimulation(result.simulation);
         setEtag(result.etag);
-        setFeedback('Simulado realizado. Ele não poderá mais ser alterado.');
+        setToastMessage('Simulado realizado com sucesso.');
       } else {
         await deleteSimulation(classId, simulationId, etag);
         navigate(`/admin/turmas/${encodeURIComponent(classId)}/simulados`, {
@@ -133,43 +172,25 @@ export function SimulationDetailPage() {
 
   return (
     <section aria-labelledby="simulation-detail-title" className="mx-auto max-w-4xl space-y-6">
-      <Link
-        className="account-button-secondary inline-flex min-h-11 items-center justify-center rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        to={`/admin/turmas/${encodeURIComponent(classId)}/simulados`}
-      >
+      <ActionLink to={`/admin/turmas/${encodeURIComponent(classId)}/simulados`}>
         ← Voltar aos simulados
-      </Link>
+      </ActionLink>
+      {toastMessage && <Toast message={toastMessage} onDismiss={dismissToast} tone="success" />}
       {loading && (
         <p aria-live="polite" className="text-body-large text-muted" role="status">
           Carregando simulado…
         </p>
       )}
       {error && (
-        <p
-          className="rounded-lg border border-danger bg-error-surface p-4 text-body-medium text-danger"
-          role="alert"
-        >
-          {error}
-        </p>
-      )}
-      {feedback && (
-        <p
-          className="rounded-lg border border-success bg-success-surface p-4 text-body-medium text-success"
-          role="status"
-        >
-          {feedback}
-        </p>
+        <div className="space-y-3">
+          <Alert tone="danger">{error}</Alert>
+          <Button leadingIcon="refresh" onClick={() => void retryLoad()} variant="secondary">
+            Tentar carregar simulado novamente
+          </Button>
+        </div>
       )}
       {!loading && !error && schoolClass && simulation && (
         <>
-          {createdNumber === simulation.number && (
-            <p
-              className="rounded-lg border border-success bg-success-surface p-4 text-body-medium text-success"
-              role="status"
-            >
-              Simulado nº {simulation.number} criado.
-            </p>
-          )}
           <header className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1
@@ -221,39 +242,39 @@ export function SimulationDetailPage() {
               className="flex flex-wrap items-center justify-between gap-3"
               role="group"
             >
-              <Link
-                className="account-button-primary inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              <ActionLink
+                className="px-4"
+                variant="primary"
                 to={`/admin/turmas/${encodeURIComponent(classId)}/simulados/${encodeURIComponent(simulationId)}/editar`}
               >
                 Editar simulado
-              </Link>
+              </ActionLink>
               <div className="ml-auto flex flex-wrap gap-3">
-                <button
-                  className="account-button-primary min-h-11 rounded-lg bg-success px-4 text-label-large font-semibold text-on-primary hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-success disabled:opacity-60"
+                <Button
                   disabled={pending}
                   onClick={() => setConfirmation('realize')}
-                  type="button"
+                  variant="success"
                 >
                   Confirmar realização
-                </button>
-                <button
-                  className="account-button-primary min-h-11 rounded-lg bg-danger px-4 text-label-large font-semibold text-on-primary hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger disabled:opacity-60"
+                </Button>
+                <Button
                   disabled={pending}
                   onClick={() => setConfirmation('delete')}
-                  type="button"
+                  variant="danger"
                 >
                   Excluir simulado
-                </button>
+                </Button>
               </div>
             </div>
           )}
           {simulation.realizedAt && (
-            <Link
-              className="account-button-primary inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            <ActionLink
+              className="px-5"
+              variant="primary"
               to={`/admin/turmas/${encodeURIComponent(classId)}/simulados/${encodeURIComponent(simulationId)}/resultados`}
             >
               Ver resultados
-            </Link>
+            </ActionLink>
           )}
 
           <div className="panel-surface space-y-5 rounded-2xl bg-surface p-5 sm:p-6">
@@ -299,10 +320,18 @@ export function SimulationDetailPage() {
                   <span>
                     {subjectById.get(subject.subjectId) ?? `Matéria ${subject.subjectId}`}
                   </span>
-                  <span>
-                    {subject.totalQuestions} questões ·{' '}
-                    {subject.weightPercent.toFixed(2).replace('.', ',')}%
-                  </span>
+                  <dl className="flex flex-wrap gap-x-5 gap-y-2 text-body-small">
+                    <div>
+                      <dt className="text-muted">Questões</dt>
+                      <dd className="font-medium text-on-surface">{subject.totalQuestions}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted">Peso</dt>
+                      <dd className="font-medium text-on-surface">
+                        {subject.weightPercent.toFixed(2).replace('.', ',')}%
+                      </dd>
+                    </div>
+                  </dl>
                 </li>
               ))}
             </ul>

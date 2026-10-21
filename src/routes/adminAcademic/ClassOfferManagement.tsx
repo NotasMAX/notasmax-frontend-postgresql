@@ -6,6 +6,7 @@ import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { CenteredSubmitButton } from '../../components/CenteredSubmitButton';
 import { SelectField } from '../../components/SelectField';
+import { Toast } from '../../components/Toast';
 import { accountErrorMessage } from '../adminAccounts/accountUi';
 import {
   addAcademicOffer,
@@ -15,6 +16,14 @@ import {
 } from '../../academic/academicLifecycleService';
 import type { ClassSubjectOffer } from '../../api/adminAcademicLifecycle';
 import type { AdminSubjectOption } from '../../api/adminAcademicCatalog';
+
+function getOfferFocusFallback(): HTMLElement | null {
+  const subjectSelect = document.getElementById('offer-subject');
+  if (subjectSelect && !subjectSelect.matches(':disabled')) return subjectSelect;
+
+  const offersSection = document.getElementById('class-offers-heading')?.closest('section');
+  return offersSection?.querySelector<HTMLElement>('a[href], button:not(:disabled)') ?? null;
+}
 
 export function ClassOfferManagement({ classId }: { readonly classId: string }) {
   const [offers, setOffers] = useState<readonly ClassSubjectOffer[]>([]);
@@ -28,7 +37,9 @@ export function ClassOfferManagement({ classId }: { readonly classId: string }) 
   const [offersErrorMessage, setOffersErrorMessage] = useState<string | null>(null);
   const [subjectsErrorMessage, setSubjectsErrorMessage] = useState<string | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<ClassSubjectOffer | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const mutationInFlight = useRef(false);
+  const dismissToast = useCallback(() => setToastMessage(null), []);
 
   const refreshOffers = useCallback(async () => {
     setLoading(true);
@@ -72,6 +83,7 @@ export function ClassOfferManagement({ classId }: { readonly classId: string }) 
     try {
       await addAcademicOffer(classId, selectedSubjectId, offerEtag);
       setSelectedSubjectId('');
+      setToastMessage('Matéria adicionada à turma.');
       await refreshOffers();
     } catch (error) {
       setErrorMessage(accountErrorMessage(error));
@@ -90,6 +102,7 @@ export function ClassOfferManagement({ classId }: { readonly classId: string }) 
     try {
       await removeAcademicOffer(classId, pendingRemoval.subjectId, offerEtag);
       setPendingRemoval(null);
+      setToastMessage('Matéria removida da turma.');
       await refreshOffers();
     } catch (error) {
       setPendingRemoval(null);
@@ -107,6 +120,14 @@ export function ClassOfferManagement({ classId }: { readonly classId: string }) 
 
   return (
     <div className="space-y-5">
+      {toastMessage && (
+        <Toast
+          fallbackFocusTarget={getOfferFocusFallback}
+          message={toastMessage}
+          onDismiss={dismissToast}
+          tone="success"
+        />
+      )}
       {errorMessage && (
         <p
           aria-live="assertive"

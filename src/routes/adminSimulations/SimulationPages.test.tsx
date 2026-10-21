@@ -173,7 +173,8 @@ describe('NM-33 simulation screens', () => {
     renderRoutes('/admin/turmas/44/simulados');
 
     const link = await screen.findByRole('link', { name: '← Escolher outra turma' });
-    expect(link.className).toContain('account-button-secondary');
+    expect(link.className).toContain('rounded-control');
+    expect(link.className).toContain('border-outline');
     expect(link.getAttribute('href')).toBe('/admin/simulados');
   });
 
@@ -182,10 +183,10 @@ describe('NM-33 simulation screens', () => {
 
     const createLink = await screen.findByRole('link', { name: 'Novo simulado' });
     const detailLink = await screen.findByRole('link', { name: 'Abrir detalhe' });
-    for (const link of [createLink, detailLink]) {
-      expect(link.className).toContain('account-button-primary');
-      expect(link.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
-    }
+    expect(createLink.className).toContain('bg-primary');
+    expect(createLink.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    expect(detailLink.className).toContain('bg-primary');
+    expect(detailLink.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
   });
 
   it('applies supported filters, keeps them while paging, resets them, and shows empty state', async () => {

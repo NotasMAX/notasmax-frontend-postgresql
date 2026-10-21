@@ -159,3 +159,50 @@ describe('class subject and teacher removals', () => {
     expect(screen.queryByRole('button', { name: 'Remover professor' })).toBeNull();
   });
 });
+
+describe('class offer creation', () => {
+  it('returns focus to the enabled subject selector after manually dismissing the success toast', async () => {
+    const user = userEvent.setup();
+    vi.mocked(lifecycle.loadAcademicOfferPage)
+      .mockResolvedValueOnce({ items: [], etag: '"offers-v1"' })
+      .mockResolvedValueOnce({
+        items: [{ subjectId: '8', name: 'História', description: null }],
+        etag: '"offers-v2"',
+      });
+    vi.mocked(lifecycle.loadAcademicSubjectChoices).mockResolvedValue([
+      { subjectId: '8', name: 'História', description: null },
+      { subjectId: '9', name: 'Geografia', description: null },
+    ]);
+    vi.mocked(lifecycle.addAcademicOffer).mockResolvedValue(undefined);
+
+    render(
+      <MemoryRouter>
+        <ClassOfferManagement classId="44" />
+      </MemoryRouter>,
+    );
+
+    const subjectSelect = (await screen.findByRole('combobox', {
+      name: 'Matéria para adicionar',
+    })) as HTMLSelectElement;
+    await waitFor(() => expect(subjectSelect.disabled).toBe(false));
+    await user.selectOptions(subjectSelect, '8');
+    await user.tab();
+
+    const addButton = screen.getByRole('button', { name: 'Adicionar matéria' });
+    expect(document.activeElement).toBe(addButton);
+    await user.keyboard('{Enter}');
+
+    expect(await screen.findByText('Matéria adicionada à turma.')).toBeTruthy();
+    await waitFor(() => expect(lifecycle.addAcademicOffer).toHaveBeenCalledOnce());
+    expect(lifecycle.addAcademicOffer).toHaveBeenCalledWith('44', '8', '"offers-v1"');
+    expect(subjectSelect.value).toBe('');
+    expect(subjectSelect.disabled).toBe(false);
+    expect(addButton.hasAttribute('disabled')).toBe(true);
+
+    await user.click(screen.getByRole('button', { name: 'Fechar notificação' }));
+
+    expect(document.activeElement).toBe(subjectSelect);
+    expect(document.activeElement).not.toBe(document.body);
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+});

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router';
 import type {
   AccountProfile,
   ActivationEmailStatus,
@@ -12,8 +11,10 @@ import {
   type AccountDetail,
 } from '../../accounts/accountService';
 import { AccountPageShell } from './AccountPageShell';
+import { Alert } from '../../components/Alert';
+import { ActionLink } from '../../components/ActionLink';
 import { Badge } from '../../components/Badge';
-import { Icon } from '../../components/Icon';
+import { Button } from '../../components/Button';
 import { Toast, type ToastTone } from '../../components/Toast';
 import { EnrollmentCancellation } from '../adminAcademic/EnrollmentCancellation';
 import {
@@ -81,6 +82,7 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
   const notice = readNotice(locationState);
   const currentCivilDate = saoPauloCivilDate();
   const [noticeMessage, setNoticeMessage] = useState(notice.message ?? null);
+  const [noticeTone, setNoticeTone] = useState<ToastTone>(notice.messageTone ?? 'success');
   const [account, setAccount] = useState<AccountDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -148,16 +150,14 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
       description="Consulte os dados e a situação desta conta."
       actions={
         <>
-          <Link
-            className="account-button-secondary inline-flex min-h-11 items-center gap-2 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            to={accountCollectionPath(profile)}
-          >
-            <Icon name="arrowBack" />
+          <ActionLink className="px-4" leadingIcon="arrowBack" to={accountCollectionPath(profile)}>
             Voltar à lista
-          </Link>
+          </ActionLink>
           {account && (
-            <Link
-              className="account-button-primary inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            <ActionLink
+              className="px-4"
+              leadingIcon="edit"
+              variant="primary"
               to={
                 accountCollectionPath(profile) +
                 '/' +
@@ -165,29 +165,28 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
                 '/editar'
               }
             >
-              <Icon name="edit" />
               Editar conta
-            </Link>
+            </ActionLink>
           )}
           {account && isStudentDetail(account) && (
-            <Link
-              className="account-button-primary inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-label-large font-semibold text-on-primary"
+            <ActionLink
+              className="px-4"
+              leadingIcon="add"
+              variant="primary"
               to="/admin/estrutura/matriculas/nova"
             >
-              <Icon name="add" />
               Nova matrícula
-            </Link>
+            </ActionLink>
           )}
         </>
       }
     >
-      {noticeMessage && (
-        <Toast
-          message={noticeMessage}
-          onDismiss={dismissNoticeToast}
-          tone={notice.messageTone ?? 'success'}
-        />
-      )}
+      {noticeMessage &&
+        (noticeTone === 'warning' ? (
+          <Alert tone="warning">{noticeMessage}</Alert>
+        ) : (
+          <Toast message={noticeMessage} onDismiss={dismissNoticeToast} tone={noticeTone} />
+        ))}
       {notice.emailChangeTo && (
         <p
           aria-live="polite"
@@ -198,12 +197,15 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
           confirma a entrega do e-mail. Se precisar de outro link, use Reenviar ativação.
         </p>
       )}
-      {activationStatus && (
+      {activationStatus === 'sent' && (
         <Toast
           message={activationFeedback(activationStatus)}
           onDismiss={dismissActivationToast}
-          tone={activationStatus === 'sent' ? 'success' : 'error'}
+          tone="success"
         />
+      )}
+      {activationStatus === 'failed' && (
+        <Alert tone="warning">{activationFeedback(activationStatus)}</Alert>
       )}
       {resendError && (
         <p
@@ -223,13 +225,9 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
           <p aria-live="assertive" className="text-body-medium text-danger" role="alert">
             {errorMessage}
           </p>
-          <button
-            className="account-button-secondary min-h-11 rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary"
-            onClick={() => void refresh()}
-            type="button"
-          >
+          <Button onClick={() => void refresh()} variant="secondary">
             Tentar novamente
-          </button>
+          </Button>
         </div>
       ) : account ? (
         <>
@@ -285,15 +283,15 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
                     <span className="block sm:inline">Esta conta ainda precisa ser ativada.</span>{' '}
                     <span className="block sm:inline">Você pode reenviar o link.</span>
                   </p>
-                  <button
-                    className="account-button-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2 self-end rounded-lg bg-success px-4 text-label-large font-semibold text-on-primary hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-success disabled:cursor-wait disabled:opacity-70 sm:self-auto"
+                  <Button
+                    className="shrink-0 self-end sm:self-auto"
                     disabled={resending}
+                    leadingIcon="refresh"
                     onClick={() => void resend()}
-                    type="button"
+                    variant="success"
                   >
-                    <Icon name="refresh" />
                     {resending ? 'Solicitando…' : 'Reenviar ativação'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -372,7 +370,11 @@ export function AccountDetailPage({ profile, accountId, locationState }: Account
                             {open && (
                               <EnrollmentCancellation
                                 enrollmentId={enrollment.enrollmentId}
-                                onCompleted={() => void refresh()}
+                                onCompleted={() => {
+                                  setNoticeTone('success');
+                                  setNoticeMessage('Matrícula cancelada com sucesso.');
+                                  void refresh();
+                                }}
                               />
                             )}
                           </div>
