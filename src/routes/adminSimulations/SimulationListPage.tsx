@@ -124,7 +124,7 @@ export function SimulationListPage() {
 
   if (!classId) return null;
   return (
-    <section aria-labelledby="simulations-title" className="space-y-5">
+    <section aria-labelledby="simulations-title" className="space-y-6">
       <Link
         className="account-button-secondary inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-panel-outline bg-surface px-3 text-label-medium font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         to="/admin/simulados"
@@ -147,9 +147,9 @@ export function SimulationListPage() {
       {!classLoading && !classError && schoolClass && (
         <>
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="min-w-0 flex-1">
+            <div className="min-w-[10rem] flex-1">
               <h1
-                className="text-headline-small font-semibold text-on-surface"
+                className="text-headline-medium font-semibold text-on-surface"
                 id="simulations-title"
               >
                 Simulados
@@ -364,15 +364,11 @@ export function SimulationListPage() {
               </ul>
               <nav
                 aria-label="Paginação de simulados"
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface p-4"
+                className="panel-surface flex flex-col gap-3 rounded-2xl bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
               >
-                <p className="text-body-medium text-muted">
-                  {result.pagination.totalItems} simulados · página {result.pagination.page} de{' '}
-                  {Math.max(1, result.pagination.totalPages)}
-                </p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
-                    className="min-h-11 rounded-lg border border-panel-outline px-4 text-label-large text-primary focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
+                    className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={listLoading || filters.page <= 1}
                     onClick={() => {
                       setListLoading(true);
@@ -384,7 +380,7 @@ export function SimulationListPage() {
                     Anterior
                   </button>
                   <button
-                    className="min-h-11 rounded-lg border border-panel-outline px-4 text-label-large text-primary focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
+                    className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={listLoading || filters.page >= result.pagination.totalPages}
                     onClick={() => {
                       setListLoading(true);
@@ -396,6 +392,10 @@ export function SimulationListPage() {
                     Próxima
                   </button>
                 </div>
+                <p aria-live="polite" className="text-body-medium text-muted">
+                  {result.pagination.totalItems} simulados · página {result.pagination.page} de{' '}
+                  {Math.max(1, result.pagination.totalPages)}
+                </p>
               </nav>
             </>
           )}

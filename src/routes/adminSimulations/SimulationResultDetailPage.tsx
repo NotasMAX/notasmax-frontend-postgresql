@@ -145,9 +145,9 @@ export function SimulationResultDetailPage() {
   }
 
   return (
-    <section aria-labelledby="simulation-result-title" className="mx-auto max-w-4xl space-y-5">
+    <section aria-labelledby="simulation-result-title" className="mx-auto max-w-4xl space-y-6">
       <Link
-        className="text-label-large font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+        className="account-button-secondary inline-flex min-h-11 items-center justify-center rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         to={listPath}
       >
         ← Voltar aos resultados
@@ -180,7 +180,7 @@ export function SimulationResultDetailPage() {
               Resultado do simulado
             </p>
             <h1
-              className="text-headline-small font-semibold text-on-surface"
+              className="text-headline-medium font-semibold text-on-surface"
               id="simulation-result-title"
             >
               {result.studentName}

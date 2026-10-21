@@ -101,9 +101,9 @@ export function SimulationResultsPage() {
   const totalPages = pageData?.pagination.totalPages ?? 0;
 
   return (
-    <section aria-labelledby="simulation-results-title" className="space-y-5">
+    <section aria-labelledby="simulation-results-title" className="space-y-6">
       <Link
-        className="text-label-large font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+        className="account-button-secondary inline-flex min-h-11 items-center justify-center rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         to={`/admin/turmas/${encodeURIComponent(classId)}/simulados/${encodeURIComponent(simulationId)}`}
       >
         ← Voltar ao simulado
@@ -113,7 +113,7 @@ export function SimulationResultsPage() {
           {className}
         </p>
         <h1
-          className="text-headline-small font-semibold text-on-surface"
+          className="text-headline-medium font-semibold text-on-surface"
           id="simulation-results-title"
         >
           Resultados do simulado{simulationNumber ? ` nº ${simulationNumber}` : ''}
@@ -305,14 +305,13 @@ export function SimulationResultsPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="flex flex-wrap items-center justify-between gap-3 text-body-small text-muted">
-                  <p>
-                    {pageData.pagination.totalItems} resultado(s) · página{' '}
-                    {pageData.pagination.page} de {pageData.pagination.totalPages}
-                  </p>
-                  <div className="flex gap-2">
+                <nav
+                  aria-label="Paginação de resultados"
+                  className="panel-surface flex flex-col gap-3 rounded-2xl bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50"
+                      className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
                       disabled={loading || page <= 1}
                       onClick={() => {
                         setLoading(true);
@@ -324,7 +323,7 @@ export function SimulationResultsPage() {
                       Anterior
                     </button>
                     <button
-                      className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50"
+                      className="account-button-secondary min-h-11 rounded-lg border border-panel-outline px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
                       disabled={loading || page >= totalPages}
                       onClick={() => {
                         setLoading(true);
@@ -336,7 +335,11 @@ export function SimulationResultsPage() {
                       Próxima
                     </button>
                   </div>
-                </div>
+                  <p aria-live="polite" className="text-body-medium text-muted">
+                    {pageData.pagination.totalItems} resultado(s) · página{' '}
+                    {pageData.pagination.page} de {pageData.pagination.totalPages}
+                  </p>
+                </nav>
               </>
             )
           )}

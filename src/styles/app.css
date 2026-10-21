@@ -25,6 +25,7 @@
   --color-on-surface: #043666;
   --color-muted: #404040;
   --color-outline: #aeb8c0;
+  --color-field-outline: #838a90;
   --color-panel-outline: #d9d9d9;
   --shadow-panel: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
   --radius-control: 0.5rem;
@@ -128,6 +129,7 @@ html:has(.app-platform) {
 }
 
 .auth-panel {
+  --color-field-outline: var(--color-on-surface);
   background-color: rgb(255 255 255 / var(--auth-panel-alpha));
 }
 
@@ -143,6 +145,18 @@ html:has(.app-platform) {
 
 .account-button-secondary {
   border-color: var(--color-panel-outline);
+}
+
+:where(
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='hidden']):not(
+      [type='button']
+    ):not([type='submit']):not([type='reset']):not([type='image']):not([type='file']):not(
+      [type='color']
+    ):not([aria-invalid='true']):not(:disabled),
+  select:not([aria-invalid='true']):not(:disabled),
+  textarea:not([aria-invalid='true']):not(:disabled)
+) {
+  border-color: var(--color-field-outline);
 }
 
 .select-field-chevron {

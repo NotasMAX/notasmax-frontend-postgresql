@@ -221,16 +221,19 @@ export function SimulationFormPage() {
   const exceptSimulationId = editing ? simulationId : undefined;
 
   return (
-    <section aria-labelledby="simulation-form-title" className="mx-auto max-w-4xl space-y-5">
+    <section
+      aria-labelledby="simulation-form-title"
+      className="mx-auto w-full max-w-[45rem] space-y-6"
+    >
       <Link
-        className="account-button-secondary inline-flex min-h-10 items-center justify-center rounded-lg bg-surface px-3 text-label-medium font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="account-button-secondary inline-flex min-h-11 items-center justify-center rounded-lg border border-panel-outline bg-surface px-4 text-label-large font-medium text-primary transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         to={`/admin/turmas/${encodeURIComponent(classId)}/simulados`}
       >
         ← Voltar aos simulados
       </Link>
       <div>
         <h1
-          className="text-headline-small font-semibold text-on-surface"
+          className="text-headline-medium font-semibold text-on-surface"
           id="simulation-form-title"
         >
           {title}
@@ -283,7 +286,7 @@ export function SimulationFormPage() {
                   Turma
                 </label>
                 <select
-                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface disabled:cursor-not-allowed disabled:bg-surface-container disabled:opacity-100"
+                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-surface-container disabled:opacity-100"
                   disabled
                   id="simulation-class"
                   value={schoolClass.classId}
@@ -299,7 +302,7 @@ export function SimulationFormPage() {
                   Ano letivo
                 </label>
                 <select
-                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface disabled:cursor-not-allowed disabled:bg-surface-container disabled:opacity-100"
+                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-surface-container disabled:opacity-100"
                   disabled
                   id="simulation-school-year"
                   value={schoolClass.schoolYear}
@@ -318,7 +321,7 @@ export function SimulationFormPage() {
                   Tipo
                 </label>
                 <select
-                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
+                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   id="simulation-type"
                   onChange={(event) => {
                     setDraft({
@@ -345,7 +348,7 @@ export function SimulationFormPage() {
                   Bimestre
                 </label>
                 <select
-                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
+                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   id="simulation-bimester"
                   onChange={(event) => {
                     setDraft({ ...draft, bimester: event.currentTarget.value });
@@ -371,7 +374,7 @@ export function SimulationFormPage() {
                   Data agendada
                 </label>
                 <input
-                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
+                  className="min-h-12 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   id="simulation-date"
                   onChange={(event) => {
                     setDraft({ ...draft, scheduledDate: event.currentTarget.value });
@@ -462,7 +465,7 @@ export function SimulationFormPage() {
                             Quantidade de questões
                           </label>
                           <input
-                            className="min-h-11 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
+                            className="min-h-11 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                             id={`questions-${subject.subjectId}`}
                             min="1"
                             onChange={(event) =>
@@ -486,7 +489,7 @@ export function SimulationFormPage() {
                             Peso (%)
                           </label>
                           <input
-                            className="min-h-11 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
+                            className="min-h-11 w-full rounded-lg border border-outline bg-surface px-3 text-body-large text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                             id={`weight-${subject.subjectId}`}
                             max="100"
                             min="0.01"

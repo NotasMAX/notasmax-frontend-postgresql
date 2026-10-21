@@ -122,6 +122,10 @@ describe('NM-34 result screens', () => {
     expect(
       await screen.findByRole('heading', { name: 'Resultados do simulado nº 3' }),
     ).not.toBeNull();
+    const pagination = screen.getByRole('navigation', { name: 'Paginação de resultados' });
+    expect(pagination.querySelector('[aria-live="polite"]')?.textContent).toContain(
+      '1 resultado(s) · página 1 de 2',
+    );
     expect(screen.getByRole('link', { name: 'Ver resultado' }).getAttribute('href')).toBe(
       '/admin/turmas/44/simulados/12/resultados/51/7',
     );

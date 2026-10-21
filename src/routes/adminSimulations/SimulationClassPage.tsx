@@ -42,14 +42,14 @@ export function SimulationClassPage() {
   const visibleClasses = classes.filter(({ schoolYear }) => schoolYear === selectedSchoolYear);
 
   return (
-    <section aria-labelledby="simulation-classes-title" className="space-y-5">
+    <section aria-labelledby="simulation-classes-title" className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-label-large font-semibold uppercase tracking-wide text-primary">
             Administração
           </p>
           <h1
-            className="mt-2 text-headline-small font-semibold text-on-surface"
+            className="mt-2 text-headline-medium font-semibold text-on-surface"
             id="simulation-classes-title"
           >
             Simulados por turma

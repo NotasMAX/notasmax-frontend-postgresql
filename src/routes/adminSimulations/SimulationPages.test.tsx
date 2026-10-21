@@ -198,6 +198,11 @@ describe('NM-33 simulation screens', () => {
     renderRoutes('/admin/turmas/44/simulados');
     await screen.findByRole('heading', { name: 'Simulados' });
     await screen.findByRole('link', { name: 'Abrir detalhe' });
+    expect(
+      screen
+        .getByRole('navigation', { name: 'Paginação de simulados' })
+        .querySelector('[aria-live="polite"]'),
+    ).not.toBeNull();
     vi.mocked(listSimulations).mockClear();
 
     await user.selectOptions(screen.getByLabelText('Bimestre'), '2');

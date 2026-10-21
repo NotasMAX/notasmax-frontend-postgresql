@@ -9,6 +9,18 @@ const authPageLayout = readFileSync(
 );
 const appLayout = readFileSync(new URL('../components/AppLayout.tsx', import.meta.url), 'utf8');
 const loginPage = readFileSync(new URL('../routes/LoginPage.tsx', import.meta.url), 'utf8');
+const simulationFormPage = readFileSync(
+  new URL('../routes/adminSimulations/SimulationFormPage.tsx', import.meta.url),
+  'utf8',
+);
+const simulationResultsPage = readFileSync(
+  new URL('../routes/adminSimulations/SimulationResultsPage.tsx', import.meta.url),
+  'utf8',
+);
+const simulationResultDetailPage = readFileSync(
+  new URL('../routes/adminSimulations/SimulationResultDetailPage.tsx', import.meta.url),
+  'utf8',
+);
 const notFoundPage = readFileSync(new URL('../routes/NotFoundPage.tsx', import.meta.url), 'utf8');
 const galleryPage = readFileSync(
   new URL('../routes/DesignSystemGalleryPage.tsx', import.meta.url),
@@ -63,6 +75,18 @@ function blendWithWhite(hex: string, alpha: number): string {
     .map((index) => {
       const channel = Number.parseInt(hex.slice(index, index + 2), 16);
       return Math.round(channel * (1 - alpha) + 255 * alpha)
+        .toString(16)
+        .padStart(2, '0');
+    })
+    .join('')}`;
+}
+
+function interpolateHex(first: string, second: string, progress: number): string {
+  return `#${[1, 3, 5]
+    .map((index) => {
+      const start = Number.parseInt(first.slice(index, index + 2), 16);
+      const end = Number.parseInt(second.slice(index, index + 2), 16);
+      return Math.round(start + (end - start) * progress)
         .toString(16)
         .padStart(2, '0');
     })
@@ -132,6 +156,84 @@ describe('approved visual tokens', () => {
     expect(appLayout).toContain('<Alert className="mb-6" tone="danger">');
     expect(appLayout).not.toMatch(/<(?:button|p)[^>]*panel-surface/s);
     expect(notFoundPage).toContain('focus-visible:outline-2');
+  });
+
+  it('gives active functional fields a dedicated outline with 3:1 contrast on their production fill', () => {
+    const fieldSurfaces = [themeColor('--color-surface')];
+    const fieldOutlineRule = stylesheet.match(
+      /:where\([\s\S]*?\)\s*\{\s*border-color:\s*var\(--color-field-outline\);\s*\}/i,
+    )?.[0];
+
+    expect(themeColor('--color-field-outline')).toBe('#838a90');
+    expect(themeColor('--color-outline')).toBe('#aeb8c0');
+    expect(themeColor('--color-panel-outline')).toBe('#d9d9d9');
+    expect(fieldOutlineRule).toMatch(/input:not\(/);
+    expect(fieldOutlineRule).toMatch(/not\(\s*\[type='button'\]\s*\)/);
+    expect(fieldOutlineRule).toMatch(/not\(\s*\[type='submit'\]\s*\)/);
+    expect(fieldOutlineRule).toMatch(/not\(\s*\[type='file'\]\s*\)/);
+    expect(fieldOutlineRule).toMatch(/select:not\(\[aria-invalid='true'\]\):not\(:disabled\)/);
+    expect(fieldOutlineRule).toMatch(/textarea:not\(\[aria-invalid='true'\]\):not\(:disabled\)/);
+    expect(fieldOutlineRule).toMatch(/not\(\[aria-invalid='true'\]\)/);
+    expect(fieldOutlineRule).toMatch(/:not\(:disabled\)/);
+    expect(fieldOutlineRule).not.toMatch(
+      /\[type=['"](?:text|email|password|search|number|date)['"]\]/i,
+    );
+    expect(simulationResultsPage).toMatch(/<input[^>]*id="result-search"/s);
+    expect(simulationFormPage).toContain('type="date"');
+    expect(simulationResultDetailPage).toContain('type="number"');
+    expect(loginPage).toContain('focus-visible:ring-2 focus-visible:ring-primary');
+    expect(loginPage).toContain('aria-invalid={apiErrors.fields.email.length > 0 || undefined}');
+    expect(loginPage).toContain('bg-surface');
+    expect(simulationFormPage).toContain('disabled:bg-surface-container disabled:opacity-100');
+
+    for (const surface of fieldSurfaces) {
+      expect(contrastRatio(themeColor('--color-field-outline'), surface)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('keeps authentication field outlines at 3:1 against the production translucent gradient panel', () => {
+    const authPageRule = stylesheet.match(/\.auth-page\s*\{([^}]*)\}/s)?.[1];
+    const authPanelRule = stylesheet.match(/\.auth-panel\s*\{([^}]*)\}/s)?.[1];
+    const gradientStopNames = ['start', 'middle', 'end'] as const;
+    const gradientStops = gradientStopNames.map(
+      (name) =>
+        authPageRule?.match(new RegExp(`--auth-background-${name}:\\s*(#[0-9a-f]{6})`, 'i'))?.[1],
+    );
+    const panelAlpha = authPageRule?.match(/--auth-panel-alpha:\s*([\d.]+)/)?.[1];
+    const fieldOutlineToken = authPanelRule?.match(
+      /--color-field-outline:\s*var\((--color-[\w-]+)\)/,
+    )?.[1];
+
+    expect(authPageRule).toMatch(
+      /background:\s*linear-gradient\(\s*135deg,\s*var\(--auth-background-start\)\s*0%,\s*var\(--auth-background-middle\)\s*54%,\s*var\(--auth-background-end\)\s*100%/s,
+    );
+    expect(authPanelRule).toMatch(
+      /background-color:\s*rgb\(255\s+255\s+255\s*\/\s*var\(--auth-panel-alpha\)\)/,
+    );
+    expect(fieldOutlineToken).toBe('--color-on-surface');
+    expect(gradientStops.every((stop) => stop !== undefined)).toBe(true);
+    expect(panelAlpha).toBeDefined();
+    if (gradientStops.some((stop) => stop === undefined) || panelAlpha === undefined) {
+      throw new Error('Missing production authentication gradient or panel surface values.');
+    }
+
+    const outline = themeColor(fieldOutlineToken);
+    const alpha = Number(panelAlpha);
+    expect(contrastRatio(outline, themeColor('--color-surface'))).toBeGreaterThanOrEqual(3);
+
+    for (let segment = 0; segment < gradientStops.length - 1; segment += 1) {
+      const start = gradientStops[segment];
+      const end = gradientStops[segment + 1];
+      if (!start || !end) {
+        throw new Error('Missing production authentication gradient stop.');
+      }
+
+      for (let step = 0; step <= 100; step += 1) {
+        const gradientColor = interpolateHex(start, end, step / 100);
+        const renderedPanelSurface = blendWithWhite(gradientColor, alpha);
+        expect(contrastRatio(outline, renderedPanelSurface)).toBeGreaterThanOrEqual(3);
+      }
+    }
   });
 
   it('keeps semantic anchor utilities above the inherited base color and meets AA contrast', () => {
